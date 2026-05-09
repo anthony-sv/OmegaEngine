@@ -1,0 +1,22 @@
+{
+  "name": "omega-engine",
+  "version": "0.0.1",
+  "dependencies": [
+    {
+      "name": "glad",
+      "features": [
+        "gl-api-46",
+        "loader"
+      ]
+    },
+    "glfw3",
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental",
+        "glfw-binding",
+        "opengl3-binding"
+      ]
+    }
+  ]
+}

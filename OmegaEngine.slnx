@@ -1,1 +1,12 @@
-<Solution />
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="README.md" />
+    <File Path="vcpkg-configuration.json" />
+    <File Path="vcpkg.json" />
+  </Folder>
+  <Project Path="Engine/Engine.vcxproj" Id="8ebd052f-0aac-4896-9ca0-bf6f52c1482d" />
+</Solution>
