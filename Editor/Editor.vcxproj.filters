@@ -15,13 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\Core\Engine.Core-Application.cppm">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\Core\Engine.Core.cppm">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\Engine.Core-Application.cpp">
+    <ClCompile Include="src\EditorApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

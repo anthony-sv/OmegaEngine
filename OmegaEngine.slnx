@@ -8,5 +8,6 @@
     <File Path="vcpkg-configuration.json" />
     <File Path="vcpkg.json" />
   </Folder>
+  <Project Path="Editor/Editor.vcxproj" Id="90bde2b6-add6-4964-8546-561144148e1f" />
   <Project Path="Engine/Engine.vcxproj" Id="8ebd052f-0aac-4896-9ca0-bf6f52c1482d" />
 </Solution>
