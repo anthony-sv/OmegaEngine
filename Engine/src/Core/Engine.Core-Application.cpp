@@ -1,93 +1,81 @@
 module;
 
 #include "glad/glad.h"
-#include "GLFW/glfw3.h"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 
 module Engine.Core:Application;
 
 import :Application;
+import :Error;
+import :Window;
+import std;
 
 namespace Engine::Core {
 
-    void Application::WindowDeleter::operator()(GLFWwindow* ptr) const {
-        if(ptr) glfwDestroyWindow(ptr);
+    Application::Application(WindowProps const& props)
+        : m_initWindowProps { props }
+    {
+        s_instance = this;
+        std::println("[Ω::Application] created");
     }
 
-    bool Application::initGraphics() {
-        if(!glfwInit()) return false;
-
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-        auto* raw_window = glfwCreateWindow(1280, 720, "C++23 ImGui Docking", nullptr, nullptr);
-        if(!raw_window) return false;
-
-        m_window.reset(raw_window); // Transfers ownership to our unique_ptr
-        glfwMakeContextCurrent(m_window.get());
-        glfwSwapInterval(1);
-
-        if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) return false;
-
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
-        ImGui::StyleColorsDark();
-
-        ImGui_ImplGlfw_InitForOpenGL(m_window.get(), true);
-        ImGui_ImplOpenGL3_Init("#version 460");
-
-        return true;
+    Application::~Application() {
+        s_instance = nullptr;
+        std::println("[Ω::Application] destroyed");
     }
 
-    void Application::renderLoop() {
-        auto& io = ImGui::GetIO();
-        while(!glfwWindowShouldClose(m_window.get())) {
-            glfwPollEvents();
+    Result<int> Application::run() {
+        using Clock = std::chrono::steady_clock;
+        using Duration = std::chrono::duration<float>;
 
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
-
-            ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-            ImGui::Begin("Hello, Docking!");
-            ImGui::Text("Modular RAII implementation complete.");
-            ImGui::End();
-
-            ImGui::Render();
-            int w, h;
-            glfwGetFramebufferSize(m_window.get(), &w, &h);
-            glViewport(0, 0, w, h);
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-            if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-                auto* backup_context = glfwGetCurrentContext();
-                ImGui::UpdatePlatformWindows();
-                ImGui::RenderPlatformWindowsDefault();
-                glfwMakeContextCurrent(backup_context);
-            }
-            glfwSwapBuffers(m_window.get());
+        // Ω::Create window ──────────────────────────────────────────
+        auto windowResult = Window::create(m_initWindowProps);
+        if(!windowResult) {
+            return std::unexpected(windowResult.error());
         }
-    }
+        m_window.emplace(std::move(*windowResult));
 
-    void Application::cleanup() {
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-        glfwTerminate();
-    }
+        // Ω::Init ──────────────────────────────────────────────────
+        onInit();
 
-    std::expected<int, int> Application::run() {
-        if(!initGraphics()) return std::unexpected(1);
+        std::println("[Ω::Application] entering main loop");
+        std::println("[Ω::Application] fixed dt = {:.1f}ms", FIXED_DT * 1000.0f);
 
-        renderLoop();
-        cleanup();
+        auto  previousTime = Clock::now();
+        float accumulator = 0.0f;
+
+        // Ω::Loop ─────────────────────────────────────────────────────
+        while(m_running && !m_window->shouldClose()) {
+
+            // Ω::Time ─────────────────────────────────────────────────
+            auto  currentTime = Clock::now();
+            float frameTime = Duration(currentTime - previousTime).count();
+            previousTime = currentTime;
+            frameTime = std::min(frameTime, MAX_FRAME_DT);
+            accumulator += frameTime;
+
+            // Ω::Input ────────────────────────────────────────────────
+            m_window->pollEvents();
+
+            // Ω::Fixed-timestep update ────────────────────────────────
+            while(accumulator >= FIXED_DT) {
+                accumulator -= FIXED_DT;
+            }
+
+            // Ω::Render ───────────────────────────────────────────────
+            if(!m_window->isMinimized()) {
+                float const alpha = accumulator / FIXED_DT;
+
+                glClearColor(0.08f, 0.08f, 0.10f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                m_window->swapBuffers();
+            }
+        }
+
+        // Ω::Shutdown ─────────────────────────────────────────────────
+        onShutdown();
+        std::println("[Ω::Application] exited main loop");
 
         return 0;
     }
-}
+} // namespace Core

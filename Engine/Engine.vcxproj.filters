@@ -15,13 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\Core\Engine.Core-Application.cppm">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\Core\Engine.Core.cppm">
+    <ClCompile Include="modules\Core\Engine.Core.cppm">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Core\Engine.Core-Application.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-Error.cppm">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-Window.cppm">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\Engine.Core-Window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-Application.cppm">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
