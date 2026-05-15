@@ -1,7 +1,11 @@
-export module Engine.Core:Application;
+﻿export module Engine.Core:Application;
 
 import :Window;
 import :Error;
+import :SystemManager;
+import :LayerStack;
+import :Layer;
+import :System;
 import std;
 
 /*═══════════════════════════════════════════════════════════════════════════════
@@ -35,8 +39,29 @@ namespace Engine::Core {
 		Result<int> run();
 
 		// Ω::Subsystem access ─────────────────────────────────────────
-		[[nodiscard]] Window& window() { return *m_window; }
+		[[nodiscard]] Window&			window()			{ return *m_window; }
+		[[nodiscard]] SystemManager&	systemManager()		{ return m_systemManager; }
+		[[nodiscard]] LayerStack&		layerStack()		{ return m_layerStack; }
 
+		// Ω::Layer convenience ────────────────────────────────────────
+		template<typename T, typename... Args>
+			requires std::derived_from<T, ILayer>
+		T& pushLayer(Args&&... args) {
+			return m_layerStack.pushLayer<T>(std::forward<Args>(args)...);
+		}
+
+		template<typename T, typename... Args>
+			requires std::derived_from<T, ILayer>
+		T& pushOverlay(Args&&... args) {
+			return m_layerStack.pushOverlay<T>(std::forward<Args>(args)...);
+		}
+
+		// Ω::System convenience ───────────────────────────────────────
+		template<typename T, typename... Args>
+			requires std::derived_from<T, ISystem>
+		T& addSystem(Args&&... args) {
+			return m_systemManager.add<T>(std::forward<Args>(args)...);
+		}
 
 		// Ω::Shutdown request ─────────────────────────────────────────
 		void quit() { m_running = false; }
@@ -46,7 +71,10 @@ namespace Engine::Core {
 		virtual void onInit()     {}
 		virtual void onShutdown() {}
 	private:
-		std::optional <Window> m_window;
+		std::optional<Window> m_window;
+		SystemManager         m_systemManager;
+		LayerStack            m_layerStack;
+
 		bool m_running { true };
 
 		static constexpr float FIXED_DT { 1.0f / 60.0f };

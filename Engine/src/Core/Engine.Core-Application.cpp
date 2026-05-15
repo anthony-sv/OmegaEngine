@@ -36,9 +36,15 @@ namespace Engine::Core {
 
         // Ω::Init ──────────────────────────────────────────────────
         onInit();
+        m_systemManager.initAll();
 
         std::println("[Ω::Application] entering main loop");
-        std::println("[Ω::Application] fixed dt = {:.1f}ms", FIXED_DT * 1000.0f);
+        std::println(
+            "[Ω::Application] {} layers, {} overlays, fixed dt = {:.1f}ms",
+                     m_layerStack.layerCount(),
+                     m_layerStack.overlayCount(),
+                     FIXED_DT * 1000.0f
+        );
 
         auto  previousTime = Clock::now();
         float accumulator = 0.0f;
@@ -58,6 +64,8 @@ namespace Engine::Core {
 
             // Ω::Fixed-timestep update ────────────────────────────────
             while(accumulator >= FIXED_DT) {
+                m_systemManager.updateAll(FIXED_DT);
+                m_layerStack.updateAll(FIXED_DT);
                 accumulator -= FIXED_DT;
             }
 
@@ -67,6 +75,9 @@ namespace Engine::Core {
 
                 glClearColor(0.08f, 0.08f, 0.10f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT);
+
+                m_layerStack.renderAll(alpha);
+                m_layerStack.imGuiAll();
 
                 m_window->swapBuffers();
             }

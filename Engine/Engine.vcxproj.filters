@@ -33,5 +33,17 @@
     <ClCompile Include="modules\Core\Engine.Core-Application.cppm">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-Layer.cppm">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-LayerStack.cppm">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-System.cppm">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-SystemManager.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

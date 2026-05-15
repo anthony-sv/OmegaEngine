@@ -83,3 +83,4 @@ x86/
 
 # ImGui local config
 imgui.ini
+/Editor/omega_editor_layout.ini
