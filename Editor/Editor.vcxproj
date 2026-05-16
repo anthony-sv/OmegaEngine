@@ -136,7 +136,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="modules\EditorApp.cppm" />
+    <ClCompile Include="modules\Layers\EditorLayer.cppm" />
+    <ClCompile Include="modules\Layers\ImGuiLayer.cppm" />
     <ClCompile Include="src\EditorApp.cpp" />
+    <ClCompile Include="src\Layers\EditorLayer.cpp" />
+    <ClCompile Include="src\Layers\ImGuiLayer.cpp" />
+    <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.vcxproj">
@@ -145,6 +151,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="omega_editor_layout.ini" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Layers\TitlebarState.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

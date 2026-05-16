@@ -1,4 +1,4 @@
-module;
+﻿module;
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
@@ -106,11 +106,13 @@ namespace Engine::Core {
 #ifdef _WIN32
         HWND hwnd = glfwGetWin32Window(win.m_handle.get());
 
-        MARGINS margins { 1, 1, 1, 1 };
+        MARGINS margins { 0, 0, 1, 0 };
         DwmExtendFrameIntoClientArea(hwnd, &margins);
 
         LONG style = GetWindowLong(hwnd, GWL_STYLE);
-        style |= WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+        //style |= WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+        style &= ~WS_POPUP;
+        style |= WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
         SetWindowLong(hwnd, GWL_STYLE, style);
         SetWindowPos(
             hwnd, 
@@ -139,6 +141,8 @@ namespace Engine::Core {
         , m_ownsGlfw { other.m_ownsGlfw }
     {
         other.m_ownsGlfw = false;
+        if(m_handle)
+            glfwSetWindowUserPointer(m_handle.get(), this);
     }
 
 	// Ω::Move assignment operator
@@ -148,6 +152,8 @@ namespace Engine::Core {
             m_width = other.m_width;
             m_height = other.m_height;
             m_ownsGlfw = std::exchange(other.m_ownsGlfw, false);
+            if(m_handle)
+                glfwSetWindowUserPointer(m_handle.get(), this);
         }
         return *this;
     }
