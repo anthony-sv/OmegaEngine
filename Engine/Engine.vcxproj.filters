@@ -42,8 +42,19 @@
     <ClCompile Include="modules\Core\Engine.Core-System.cppm">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="modules\Core\Engine.Core-SystemManager.ixx">
+    <ClCompile Include="modules\Core\Engine.Core-SystemManager.cppm">
       <Filter>Source Files</Filter>
     </ClCompile>
+<ClCompile Include="src\Core\Engine.Core-GameLoop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-GameLoop.cppm">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Core\EntryPoint.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

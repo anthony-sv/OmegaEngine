@@ -1,5 +1,6 @@
 ﻿export module Engine.Core;
 
+export import :GameLoop;
 export import :Application;
 export import :System;
 export import :SystemManager;

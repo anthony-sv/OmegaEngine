@@ -2,6 +2,7 @@
 
 import :Window;
 import :Error;
+import :GameLoop;
 import :SystemManager;
 import :LayerStack;
 import :Layer;
@@ -28,7 +29,7 @@ namespace Engine::Core {
 
 	export class Application {
 	public:
-		explicit Application(WindowProps const& props = {});
+		explicit Application(WindowProps const& props = {}, GameLoop::Config const& loopCfg = {});
 		virtual ~Application();
 
 		Application(Application const&) = delete;
@@ -42,6 +43,7 @@ namespace Engine::Core {
 		[[nodiscard]] Window&			window()			{ return *m_window; }
 		[[nodiscard]] SystemManager&	systemManager()		{ return m_systemManager; }
 		[[nodiscard]] LayerStack&		layerStack()		{ return m_layerStack; }
+		[[nodiscard]] GameLoop&		    gameLoop()		    { return m_gameLoop; }
 
 		// Ω::Layer convenience ────────────────────────────────────────
 		template<typename T, typename... Args>
@@ -67,21 +69,24 @@ namespace Engine::Core {
 		void quit() { m_running = false; }
 
 		[[nodiscard]] static Application& get() { return *s_instance; }
+
 	protected:
 		virtual void onInit()     {}
 		virtual void onShutdown() {}
+
 	private:
+		// Ω::Subsystems ───────────────────────────────────────────────
 		std::optional<Window> m_window;
+		GameLoop			  m_gameLoop;
 		SystemManager         m_systemManager;
 		LayerStack            m_layerStack;
 
 		bool m_running { true };
 
-		static constexpr float FIXED_DT { 1.0f / 60.0f };
-		static constexpr float MAX_FRAME_DT { 0.25f };
-
 		WindowProps m_initWindowProps;
 
 		inline static Application* s_instance { nullptr };
+
+		Result<int> runLoop();
 	}; // class Application
 } // namespace Core
