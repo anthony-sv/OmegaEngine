@@ -1,6 +1,7 @@
 ﻿export module Engine.Core:Application;
 
 import :Window;
+import :EventBus;
 import :Error;
 import :GameLoop;
 import :SystemManager;
@@ -41,6 +42,7 @@ namespace Engine::Core {
 
 		// Ω::Subsystem access ─────────────────────────────────────────
 		[[nodiscard]] Window&			window()			{ return *m_window; }
+		[[nodiscard]] EventBus&         eventBus()          { return m_eventBus; }
 		[[nodiscard]] SystemManager&	systemManager()		{ return m_systemManager; }
 		[[nodiscard]] LayerStack&		layerStack()		{ return m_layerStack; }
 		[[nodiscard]] GameLoop&		    gameLoop()		    { return m_gameLoop; }
@@ -77,6 +79,7 @@ namespace Engine::Core {
 	private:
 		// Ω::Subsystems ───────────────────────────────────────────────
 		std::optional<Window> m_window;
+		EventBus              m_eventBus;
 		GameLoop			  m_gameLoop;
 		SystemManager         m_systemManager;
 		LayerStack            m_layerStack;

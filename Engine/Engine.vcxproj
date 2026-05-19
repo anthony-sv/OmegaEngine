@@ -141,6 +141,7 @@
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Default</CompileAs>
     </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-EventBus.cppm" />
     <ClCompile Include="modules\Core\Engine.Core-GameLoop.cppm" />
     <ClCompile Include="modules\Core\Engine.Core-Layer.cppm" />
     <ClCompile Include="modules\Core\Engine.Core-LayerStack.cppm" />

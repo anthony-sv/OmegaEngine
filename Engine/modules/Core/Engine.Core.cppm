@@ -2,6 +2,7 @@
 
 export import :GameLoop;
 export import :Application;
+export import :EventBus;
 export import :System;
 export import :SystemManager;
 export import :Window;
