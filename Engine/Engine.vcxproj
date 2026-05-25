@@ -158,6 +158,9 @@
     <ClCompile Include="src\Core\Engine.Core-Application.cpp" />
     <ClCompile Include="src\Core\Engine.Core-GameLoop.cpp" />
     <ClCompile Include="src\Core\Engine.Core-Window.cpp" />
+    <ClCompile Include="modules\Renderer\Engine.Renderer.cppm" />
+    <ClCompile Include="modules\Renderer\Engine.Renderer-Shader.cppm" />
+    <ClCompile Include="src\Renderer\Engine.Renderer-Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Core\EntryPoint.hpp" />

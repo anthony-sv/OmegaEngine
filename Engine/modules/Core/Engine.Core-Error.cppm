@@ -25,7 +25,9 @@ namespace Engine::Core {
 		Unknown = 0,
 		GlfwInitFailed = 100,
 		WindowCreationFailed = 101,
-		GladLoadFailed = 102,
+		GladLoadFailed       = 102,
+		ShaderCompileFailed  = 200,
+		ShaderLinkFailed     = 201,
 	};
 
 	// Ω::ErrorInfo ───────────────────────────────────────────────────
@@ -39,9 +41,9 @@ namespace Engine::Core {
 	};
 
 	// Ω::Result ──────────────────────────────────────────────────────
-	template<typename T>
+	export template<typename T>
 	using Result = std::expected<T, ErrorInfo>;
 
 	// Ω::VoidResult ──────────────────────────────────────────────────
-	using VoidResult = Result<std::monostate>;
+	export using VoidResult = Result<std::monostate>;
 } // namespace Core

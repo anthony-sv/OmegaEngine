@@ -1,5 +1,6 @@
 ﻿module;
 
+#include "glad/glad.h"
 #include "imgui.h"
 #ifdef _WIN32
 #   include "TitlebarState.hpp"
@@ -8,12 +9,130 @@
 module EditorLayer;
 
 import Engine.Core;
+import Engine.Renderer;
 
-EditorLayer::EditorLayer(): 
+EditorLayer::EditorLayer():
     ILayer { "Ω::EditorLayer" } {}
 
 void EditorLayer::onAttach() {
     std::println("[Ω::EditorLayer] attached");
+
+    // Ω::Phase 1 — test triangle ─────────────────────────────────
+    // Renders to the default framebuffer (behind ImGui).
+
+    // ── Shader sources (GLSL) ───────────────────────────────────
+    // Vertex shader: runs once per vertex — positions geometry.
+    // Fragment shader: runs once per pixel — determines color.
+    // The GPU interpolates 'out' variables across the triangle surface,
+    // so per-vertex colors blend smoothly ("varying interpolation").
+    // layout(location = N) must match the attribute index in the VAO.
+    constexpr auto vertSrc = R"glsl(
+#version 460 core
+layout(location = 0) in vec2 a_Position;
+layout(location = 1) in vec3 a_Color;
+
+out vec3 v_Color;
+
+void main() {
+    gl_Position = vec4(a_Position, 0.0, 1.0);
+    v_Color = a_Color;
+}
+)glsl";
+
+    constexpr auto fragSrc = R"glsl(
+#version 460 core
+in vec3 v_Color;
+
+out vec4 o_Color;
+
+void main() {
+    o_Color = vec4(v_Color, 1.0);
+}
+)glsl";
+
+    auto shaderResult = Engine::Renderer::Shader::fromSources(vertSrc, fragSrc);
+    if (!shaderResult) {
+        std::println(std::cerr, "[Ω::EditorLayer] test shader failed: {}",
+            shaderResult.error().message);
+        return;
+    }
+    m_testShader.emplace(std::move(*shaderResult));
+
+    // ── Vertex data (NDC) ───────────────────────────────────────
+    // Normalized Device Coordinates: visible range is [-1, 1] on both
+    // axes. gl_Position output lands here after the vertex shader.
+    // Per-vertex layout: position (vec2) + color (vec3) = 5 floats.
+    constexpr float vertices[] = {
+        //  x      y       r     g     b
+        -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   // bottom-left  — red
+         0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   // bottom-right — green
+         0.0f,  0.5f,   0.0f, 0.0f, 1.0f,   // top-center   — blue
+    };
+
+    // ── VAO (Vertex Array Object) ───────────────────────────────
+    // Captures the vertex format — how many attributes, their types,
+    // offsets, and which buffer to read from. Binding a VAO restores
+    // all of this state in a single call.
+    glCreateVertexArrays(1, &m_testVAO);
+
+    // ── VBO (Vertex Buffer Object) ──────────────────────────────
+    // GPU-side memory holding the raw vertex data. DSA functions
+    // (glCreate*, glNamed*) operate by object ID — no global bind.
+    // glNamedBufferStorage: immutable alloc, ideal for static geometry.
+    glCreateBuffers(1, &m_testVBO);
+    glNamedBufferStorage(m_testVBO, sizeof(vertices), vertices, 0);
+
+    // ── Vertex attributes ───────────────────────────────────────
+    // Tell the VAO how to interpret each vertex in the VBO:
+    //
+    // VertexArrayVertexBuffer — bind VBO to VAO at binding index 0.
+    //   stride = 20 bytes (5 floats) between consecutive vertices.
+    //
+    // VertexArrayAttribFormat — describe one attribute in the vertex.
+    //   attr 0 (a_Position): 2 floats, offset 0 bytes.
+    //   attr 1 (a_Color):    3 floats, offset 8 bytes (past vec2).
+    //
+    // VertexArrayAttribBinding — wire attribute N to binding index 0.
+    //   This indirection lets multiple attributes share one buffer.
+    constexpr auto stride = static_cast<GLsizei>(5 * sizeof(float));
+
+    glVertexArrayVertexBuffer(m_testVAO, 0, m_testVBO, 0, stride);
+
+    glEnableVertexArrayAttrib(m_testVAO, 0);
+    glVertexArrayAttribFormat(m_testVAO, 0, 2, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayAttribBinding(m_testVAO, 0, 0);
+
+    glEnableVertexArrayAttrib(m_testVAO, 1);
+    glVertexArrayAttribFormat(m_testVAO, 1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(float));
+    glVertexArrayAttribBinding(m_testVAO, 1, 0);
+
+    std::println("[Ω::EditorLayer] test triangle ready (VAO={}, VBO={})",
+        m_testVAO, m_testVBO);
+}
+
+void EditorLayer::onDetach() {
+    // Shader cleanup is RAII (optional::reset → Shader destructor → glDeleteProgram).
+    // VAO/VBO are raw GL handles — manual cleanup until abstracted in a later phase.
+    m_testShader.reset();
+    if (m_testVBO) glDeleteBuffers(1, &m_testVBO);
+    if (m_testVAO) glDeleteVertexArrays(1, &m_testVAO);
+    std::println("[Ω::EditorLayer] detached");
+}
+
+void EditorLayer::onRender(float /*alpha*/) {
+    if (!m_testShader) return;
+
+    // OpenGL is a state machine — bind the shader and VAO, issue the
+    // draw, then unbind to leave clean state for the next pass (ImGui).
+    m_testShader->bind();
+    glBindVertexArray(m_testVAO);
+
+    // glDrawArrays — submits vertices through the GPU pipeline.
+    // GL_TRIANGLES: every 3 consecutive vertices form one triangle.
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glBindVertexArray(0);
+    m_testShader->unbind();
 }
 
 void EditorLayer::onImGuiRender() {
@@ -31,6 +150,7 @@ void EditorLayer::onImGuiRender() {
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoBringToFrontOnFocus |
         ImGuiWindowFlags_NoNavFocus |
+        ImGuiWindowFlags_NoBackground |
         ImGuiWindowFlags_MenuBar;
     
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -39,7 +159,11 @@ void EditorLayer::onImGuiRender() {
     ImGui::Begin("##Ω_DockSpaceHost", nullptr, hostFlags);
     ImGui::PopStyleVar(3);
     
-    ImGui::DockSpace(ImGui::GetID("ΩmegaEngineDockSpace"));
+    ImGui::DockSpace(
+        ImGui::GetID("ΩmegaEngineDockSpace"),
+        ImVec2(0.0f, 0.0f),
+        ImGuiDockNodeFlags_PassthruCentralNode
+    );
     
     // Ω::Menu bar ─────────────────────────────────────────────────
     if(ImGui::BeginMenuBar()) {
