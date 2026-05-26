@@ -161,6 +161,8 @@
     <ClCompile Include="modules\Renderer\Engine.Renderer.cppm" />
     <ClCompile Include="modules\Renderer\Engine.Renderer-Shader.cppm" />
     <ClCompile Include="src\Renderer\Engine.Renderer-Shader.cpp" />
+    <ClCompile Include="modules\Renderer\Engine.Renderer-Framebuffer.cppm" />
+    <ClCompile Include="src\Renderer\Engine.Renderer-Framebuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Core\EntryPoint.hpp" />

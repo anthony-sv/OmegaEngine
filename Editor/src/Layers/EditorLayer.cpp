@@ -11,10 +11,12 @@ module EditorLayer;
 import Engine.Core;
 import Engine.Renderer;
 
-EditorLayer::EditorLayer():
-    ILayer { "Ω::EditorLayer" } {}
+EditorLayer::EditorLayer()
+    : ILayer { "Ω::EditorLayer" } 
+{}
 
-void EditorLayer::onAttach() {
+void EditorLayer::onAttach() 
+{
     std::println("[Ω::EditorLayer] attached");
 
     // Ω::Phase 1 — test triangle ─────────────────────────────────
@@ -51,7 +53,8 @@ void main() {
 )glsl";
 
     auto shaderResult = Engine::Renderer::Shader::fromSources(vertSrc, fragSrc);
-    if (!shaderResult) {
+    if (!shaderResult) 
+    {
         std::println(std::cerr, "[Ω::EditorLayer] test shader failed: {}",
             shaderResult.error().message);
         return;
@@ -62,7 +65,8 @@ void main() {
     // Normalized Device Coordinates: visible range is [-1, 1] on both
     // axes. gl_Position output lands here after the vertex shader.
     // Per-vertex layout: position (vec2) + color (vec3) = 5 floats.
-    constexpr float vertices[] = {
+    constexpr float vertices[] = 
+    {
         //  x      y       r     g     b
         -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   // bottom-left  — red
          0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   // bottom-right — green
@@ -106,36 +110,53 @@ void main() {
     glVertexArrayAttribFormat(m_testVAO, 1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(float));
     glVertexArrayAttribBinding(m_testVAO, 1, 0);
 
-    std::println("[Ω::EditorLayer] test triangle ready (VAO={}, VBO={})",
-        m_testVAO, m_testVBO);
+    std::println("[Ω::EditorLayer] test triangle ready (VAO={}, VBO={})", m_testVAO, m_testVBO);
+
+    // ── Framebuffer (FBO) ───────────────────────────────────────
+    // Instead of rendering to the window (default framebuffer), we
+    // render into an off-screen texture that ImGui displays in the
+    // Viewport panel. Initial size is arbitrary — it resizes to
+    // match the panel dimensions on the first frame.
+    auto fbResult = Engine::Renderer::Framebuffer::create(1280, 720);
+    if (fbResult)
+        m_framebuffer.emplace(std::move(*fbResult));
+    else
+        std::println(std::cerr, "[Ω::EditorLayer] framebuffer failed: {}", fbResult.error().message);
 }
 
-void EditorLayer::onDetach() {
-    // Shader cleanup is RAII (optional::reset → Shader destructor → glDeleteProgram).
-    // VAO/VBO are raw GL handles — manual cleanup until abstracted in a later phase.
+void EditorLayer::onDetach() 
+{
+    m_framebuffer.reset();
     m_testShader.reset();
     if (m_testVBO) glDeleteBuffers(1, &m_testVBO);
     if (m_testVAO) glDeleteVertexArrays(1, &m_testVAO);
     std::println("[Ω::EditorLayer] detached");
 }
 
-void EditorLayer::onRender(float /*alpha*/) {
-    if (!m_testShader) return;
+void EditorLayer::onRender(float /*alpha*/) 
+{
+    if (!m_testShader || !m_framebuffer) return;
 
-    // OpenGL is a state machine — bind the shader and VAO, issue the
-    // draw, then unbind to leave clean state for the next pass (ImGui).
+    // Bind the FBO — all subsequent draw calls render into its color
+    // texture instead of the window. bind() also sets glViewport to
+    // match the FBO dimensions (critical: mismatched viewport = wrong scale).
+    m_framebuffer->bind();
+    glClearColor(0.12f, 0.12f, 0.15f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     m_testShader->bind();
     glBindVertexArray(m_testVAO);
-
-    // glDrawArrays — submits vertices through the GPU pipeline.
-    // GL_TRIANGLES: every 3 consecutive vertices form one triangle.
     glDrawArrays(GL_TRIANGLES, 0, 3);
-
     glBindVertexArray(0);
     m_testShader->unbind();
+
+    // unbind() returns to the default framebuffer and restores the
+    // viewport dimensions that were active before bind().
+    m_framebuffer->unbind();
 }
 
-void EditorLayer::onImGuiRender() {
+void EditorLayer::onImGuiRender() 
+{
     // Ω::Fullscreen DockSpace host ────────────────────────────────
     auto const* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -150,7 +171,6 @@ void EditorLayer::onImGuiRender() {
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoBringToFrontOnFocus |
         ImGuiWindowFlags_NoNavFocus |
-        ImGuiWindowFlags_NoBackground |
         ImGuiWindowFlags_MenuBar;
     
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -159,20 +179,19 @@ void EditorLayer::onImGuiRender() {
     ImGui::Begin("##Ω_DockSpaceHost", nullptr, hostFlags);
     ImGui::PopStyleVar(3);
     
-    ImGui::DockSpace(
-        ImGui::GetID("ΩmegaEngineDockSpace"),
-        ImVec2(0.0f, 0.0f),
-        ImGuiDockNodeFlags_PassthruCentralNode
-    );
+    ImGui::DockSpace(ImGui::GetID("ΩmegaEngineDockSpace"));
     
     // Ω::Menu bar ─────────────────────────────────────────────────
-    if(ImGui::BeginMenuBar()) {
-        if(ImGui::BeginMenu("File")) {
+    if(ImGui::BeginMenuBar()) 
+    {
+        if(ImGui::BeginMenu("File")) 
+        {
             if(ImGui::MenuItem("Exit", "Alt+F4"))
                 Engine::Core::Application::get().quit();
             ImGui::EndMenu();
         }
-        if(ImGui::BeginMenu("View")) {
+        if(ImGui::BeginMenu("View")) 
+        {
             ImGui::MenuItem("Viewport", nullptr, &m_showViewport);
             ImGui::MenuItem("Inspector", nullptr, &m_showInspector);
             ImGui::MenuItem("Hierarchy", nullptr, &m_showHierarchy);
@@ -210,8 +229,9 @@ void EditorLayer::onImGuiRender() {
 
         ImGui::SameLine(0, 0);
         
-        if(ImGui::Button(win.isMaximized() ? " = ##ΩMax" : " [] ##ΩMax", { btnW, frameH })) {
-            if(win.isMaximized()) win.restore();
+        if(ImGui::Button(win.isMaximized() ? " = ##ΩMax" : " [] ##ΩMax", { btnW, frameH })) 
+        {
+            if(win.isMaximized())  win.restore();
             else                   win.maximize();
         }
 
@@ -230,27 +250,55 @@ void EditorLayer::onImGuiRender() {
     }
     
     // Ω::Panels ───────────────────────────────────────────────────
-    if(m_showViewport) {
+    if(m_showViewport) 
+    {
+        // Zero padding so the rendered image fills the panel edge-to-edge.
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::Begin("Viewport", &m_showViewport);
-        ImGui::Text("Ω Game renders here");
-        auto size = ImGui::GetContentRegionAvail();
-        ImGui::Text("Available: %.0fx%.0f", size.x, size.y);
+        ImGui::PopStyleVar();
+
+        if (m_framebuffer) 
+        {
+            auto const size = ImGui::GetContentRegionAvail();
+
+            if (size.x > 0 && size.y > 0) 
+            {
+                auto const w = static_cast<std::uint32_t>(size.x);
+                auto const h = static_cast<std::uint32_t>(size.y);
+
+                // Resize the FBO when the panel dimensions change (user
+                // dragging a splitter, maximizing, etc.). The texture is
+                // recreated at the new resolution.
+                if (w != m_framebuffer->width() || h != m_framebuffer->height())
+                    m_framebuffer->resize(w, h);
+
+                // Display the FBO's color texture. UV flip: (0,1)→(1,0)
+                // because OpenGL textures have origin at bottom-left but
+                // ImGui expects origin at top-left.
+                auto const texId = static_cast<ImTextureID>(m_framebuffer->colorAttachment());
+                ImGui::Image(texId, size, ImVec2(0, 1), ImVec2(1, 0));
+            }
+        }
+
         ImGui::End();
     }
     
-    if(m_showInspector) {
+    if(m_showInspector) 
+    {
         ImGui::Begin("Inspector", &m_showInspector);
         ImGui::TextDisabled("No entity selected");
         ImGui::End();
     }
     
-    if(m_showHierarchy) {
+    if(m_showHierarchy) 
+    {
         ImGui::Begin("Scene Hierarchy", &m_showHierarchy);
         ImGui::Text("(empty scene)");
         ImGui::End();
     }
     
-    if(m_showConsole) {
+    if(m_showConsole) 
+    {
         ImGui::Begin("Console", &m_showConsole);
         ImGui::TextColored({ 0.3f, 0.9f, 0.5f, 1.0f },
                            "[Ω] OmegaEngine started successfully");

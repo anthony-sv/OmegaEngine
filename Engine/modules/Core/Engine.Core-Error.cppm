@@ -1,4 +1,4 @@
-export module Engine.Core:Error;
+﻿export module Engine.Core:Error;
 
 import std;
 
@@ -22,12 +22,13 @@ namespace Engine::Core {
 
 	// Ω::ErrorCode ───────────────────────────────────────────────────
 	export enum class ErrorCode: std::uint16_t {
-		Unknown = 0,
-		GlfwInitFailed = 100,
-		WindowCreationFailed = 101,
-		GladLoadFailed       = 102,
-		ShaderCompileFailed  = 200,
-		ShaderLinkFailed     = 201,
+		Unknown						= 0,
+		GlfwInitFailed				= 100,
+		WindowCreationFailed		= 101,
+		GladLoadFailed				= 102,
+		ShaderCompileFailed			= 200,
+		ShaderLinkFailed			= 201,
+		FramebufferCreationFailed	= 202,
 	};
 
 	// Ω::ErrorInfo ───────────────────────────────────────────────────
