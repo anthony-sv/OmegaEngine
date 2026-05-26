@@ -41,6 +41,13 @@ namespace Engine::Renderer
             std::string_view fragmentSource
         );
 
+        // Loads vertex + fragment GLSL from disk and compiles them.
+        // Delegates to fromSources() after reading the files.
+        [[nodiscard]] static Engine::Core::Result<Shader> fromFiles(
+            std::filesystem::path const& vertexPath,
+            std::filesystem::path const& fragmentPath
+        );
+
         ~Shader();
         Shader(Shader&& other) noexcept;
         Shader& operator=(Shader&& other) noexcept;

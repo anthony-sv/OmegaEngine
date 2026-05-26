@@ -150,6 +150,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\shaders\test_quad\fragment.glsl" />
+    <None Include="assets\shaders\test_quad\vertex.glsl" />
     <None Include="omega_editor_layout.ini" />
   </ItemGroup>
   <ItemGroup>

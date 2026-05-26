@@ -19,40 +19,22 @@ void EditorLayer::onAttach()
 {
     std::println("[Ω::EditorLayer] attached");
 
-    // Ω::Phase 1 — test triangle ─────────────────────────────────
-    // Renders to the default framebuffer (behind ImGui).
+    // Ω::Phase 3 — colored quad + index buffer ─────────────────────
+    // A quad is two triangles sharing an edge. Instead of duplicating
+    // two vertices (6 total), we define 4 unique corners and an index
+    // buffer (EBO) that tells the GPU which vertices form each triangle:
+    // {0,1,2} and {0,2,3}. This is the fundamental pattern the batch
+    // renderer will use at scale.
 
-    // ── Shader sources (GLSL) ───────────────────────────────────
+    // ── Shader (from external GLSL files) ──────────────────────
     // Vertex shader: runs once per vertex — positions geometry.
     // Fragment shader: runs once per pixel — determines color.
-    // The GPU interpolates 'out' variables across the triangle surface,
+    // The GPU interpolates 'out' variables across the surface,
     // so per-vertex colors blend smoothly ("varying interpolation").
-    // layout(location = N) must match the attribute index in the VAO.
-    constexpr auto vertSrc = R"glsl(
-#version 460 core
-layout(location = 0) in vec2 a_Position;
-layout(location = 1) in vec3 a_Color;
-
-out vec3 v_Color;
-
-void main() {
-    gl_Position = vec4(a_Position, 0.0, 1.0);
-    v_Color = a_Color;
-}
-)glsl";
-
-    constexpr auto fragSrc = R"glsl(
-#version 460 core
-in vec3 v_Color;
-
-out vec4 o_Color;
-
-void main() {
-    o_Color = vec4(v_Color, 1.0);
-}
-)glsl";
-
-    auto shaderResult = Engine::Renderer::Shader::fromSources(vertSrc, fragSrc);
+    auto shaderResult = Engine::Renderer::Shader::fromFiles(
+        "assets/shaders/test_quad/vertex.glsl",
+        "assets/shaders/test_quad/fragment.glsl"
+    );
     if (!shaderResult) 
     {
         std::println(std::cerr, "[Ω::EditorLayer] test shader failed: {}",
@@ -62,15 +44,38 @@ void main() {
     m_testShader.emplace(std::move(*shaderResult));
 
     // ── Vertex data (NDC) ───────────────────────────────────────
-    // Normalized Device Coordinates: visible range is [-1, 1] on both
-    // axes. gl_Position output lands here after the vertex shader.
+    // A quad needs only 4 unique vertices — the index buffer below
+    // tells the GPU how to assemble them into two triangles.
     // Per-vertex layout: position (vec2) + color (vec3) = 5 floats.
-    constexpr float vertices[] = 
+    constexpr float vertices[] =
     {
-        //  x      y       r     g     b
-        -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   // bottom-left  — red
-         0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   // bottom-right — green
-         0.0f,  0.5f,   0.0f, 0.0f, 1.0f,   // top-center   — blue
+        //  x      y       r     g     b        index
+        -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   // 0 — bottom-left  (red)
+         0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   // 1 — bottom-right (green)
+         0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   // 2 — top-right    (blue)
+        -0.5f,  0.5f,   1.0f, 1.0f, 0.0f,   // 3 — top-left     (yellow)
+    };
+
+    // ── Index data (EBO) ────────────────────────────────────────
+    // Each group of 3 indices selects vertices for one triangle.
+    // Winding order is counter-clockwise (CCW) — OpenGL's default
+    // front face. When backface culling is enabled later, only
+    // CCW-wound triangles are visible from the camera side.
+    //
+    //   3 ──── 2          tri A: 0 → 1 → 2  (bottom-right half)
+    //   │ ╲  B │          tri B: 0 → 2 → 3  (top-left half)
+    //   │  A ╲ │          shared edge: 0 → 2
+    //   0 ──── 1
+    //
+    // Why {0,1,2, 0,2,3} and not {0,1,2, 2,3,0}? Both are valid
+    // CCW, but the first keeps vertex 0 as the "pivot" — the batch
+    // renderer exploits this pattern:
+    //   quad N: base = N*4,
+    //   indices = {base, base+1, base+2, base, base+2, base+3}.
+    constexpr std::uint32_t indices[] =
+    {
+        0, 1, 2,    // triangle A
+        0, 2, 3,    // triangle B
     };
 
     // ── VAO (Vertex Array Object) ───────────────────────────────
@@ -85,6 +90,19 @@ void main() {
     // glNamedBufferStorage: immutable alloc, ideal for static geometry.
     glCreateBuffers(1, &m_testVBO);
     glNamedBufferStorage(m_testVBO, sizeof(vertices), vertices, 0);
+
+    // ── EBO (Element Buffer Object) ─────────────────────────────
+    // Also called an Index Buffer. Stores vertex indices that the
+    // GPU reads during glDrawElements. Without an EBO, a quad needs
+    // 6 vertices (two full triangles = duplicated corners). With an
+    // EBO, we store 4 vertices + 6 indices — saving 33% vertex
+    // memory. At batch scale (10,000 quads): 40k vs 60k vertices.
+    glCreateBuffers(1, &m_testEBO);
+    glNamedBufferStorage(m_testEBO, sizeof(indices), indices, 0);
+
+    // Wire the EBO to the VAO. Unlike VBOs (which use numbered
+    // binding indices), a VAO has exactly one element buffer slot.
+    glVertexArrayElementBuffer(m_testVAO, m_testEBO);
 
     // ── Vertex attributes ───────────────────────────────────────
     // Tell the VAO how to interpret each vertex in the VBO:
@@ -110,7 +128,7 @@ void main() {
     glVertexArrayAttribFormat(m_testVAO, 1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(float));
     glVertexArrayAttribBinding(m_testVAO, 1, 0);
 
-    std::println("[Ω::EditorLayer] test triangle ready (VAO={}, VBO={})", m_testVAO, m_testVBO);
+    std::println("[Ω::EditorLayer] quad ready (VAO={}, VBO={}, EBO={})", m_testVAO, m_testVBO, m_testEBO);
 
     // ── Framebuffer (FBO) ───────────────────────────────────────
     // Instead of rendering to the window (default framebuffer), we
@@ -128,6 +146,7 @@ void EditorLayer::onDetach()
 {
     m_framebuffer.reset();
     m_testShader.reset();
+    if (m_testEBO) glDeleteBuffers(1, &m_testEBO);
     if (m_testVBO) glDeleteBuffers(1, &m_testVBO);
     if (m_testVAO) glDeleteVertexArrays(1, &m_testVAO);
     std::println("[Ω::EditorLayer] detached");
@@ -146,7 +165,11 @@ void EditorLayer::onRender(float /*alpha*/)
 
     m_testShader->bind();
     glBindVertexArray(m_testVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    // glDrawElements reads indices from the VAO's bound EBO.
+    // count = 6 (two triangles × 3 indices each).
+    // GL_UNSIGNED_INT matches the std::uint32_t index array.
+    // nullptr = offset 0 into the EBO (start from first index).
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
     m_testShader->unbind();
 

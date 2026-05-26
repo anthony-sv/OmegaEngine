@@ -19,10 +19,11 @@ private:
     bool m_showHierarchy { true };
     bool m_showConsole   { true };
 
-    // Ω::Renderer Phase 1 test — raw triangle
+    // Ω::Renderer Phase 3 — colored quad with index buffer
     std::optional<Engine::Renderer::Shader> m_testShader;
     std::uint32_t m_testVAO { 0 };
     std::uint32_t m_testVBO { 0 };
+    std::uint32_t m_testEBO { 0 };
 
     // Ω::Renderer Phase 2 — off-screen render target for the Viewport panel
     std::optional<Engine::Renderer::Framebuffer> m_framebuffer;

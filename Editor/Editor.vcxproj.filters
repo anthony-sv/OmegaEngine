@@ -39,6 +39,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="omega_editor_layout.ini" />
+    <None Include="assets\shaders\test_quad\fragment.glsl" />
+    <None Include="assets\shaders\test_quad\vertex.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Layers\TitlebarState.hpp">

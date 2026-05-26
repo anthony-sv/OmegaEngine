@@ -61,9 +61,62 @@ namespace Engine::Renderer
         return shader;
     }
 
+    // Ω::File I/O ─────────────────────────────────────────────────────────
+    // Reads an entire text file into a string in one allocation.
+    // Binary mode avoids platform-specific CRLF translation — the GLSL
+    // compiler accepts both '\r\n' and '\n', so raw bytes are fine.
+    // Returns a descriptive error (not found vs. cannot open) so the
+    // caller gets actionable diagnostics instead of a generic failure.
+
+    static Core::Result<std::string> readFile(std::filesystem::path const& path)
+    {
+        if (!std::filesystem::exists(path))
+        {
+            return std::unexpected(
+                ErrorInfo::make(ErrorCode::FileReadFailed,
+                    std::format("file not found: {}", path.string())));
+        }
+
+        std::ifstream stream { path, std::ios::in | std::ios::binary };
+        if (!stream)
+        {
+            return std::unexpected(
+                ErrorInfo::make(ErrorCode::FileReadFailed,
+                    std::format("cannot open: {}", path.string())));
+        }
+
+        // Seek to end for size, rewind, read in one shot.
+        stream.seekg(0, std::ios::end);
+        auto const size = stream.tellg();
+        stream.seekg(0, std::ios::beg);
+
+        std::string content(static_cast<std::size_t>(size), '\0');
+        stream.read(content.data(), size);
+        return content;
+    }
+
     // Ω::Factory ──────────────────────────────────────────────────────────
 
-    Core::Result<Shader> Shader::fromSources(std::string_view vertexSource, std::string_view fragmentSource) 
+    Core::Result<Shader> Shader::fromFiles(
+        std::filesystem::path const& vertexPath,
+        std::filesystem::path const& fragmentPath)
+    {
+        std::println("[Ω::Shader] loading {} + {}",
+            vertexPath.filename().string(),
+            fragmentPath.filename().string());
+
+        auto vertSource = readFile(vertexPath);
+        if (!vertSource)
+            return std::unexpected(vertSource.error());
+
+        auto fragSource = readFile(fragmentPath);
+        if (!fragSource)
+            return std::unexpected(fragSource.error());
+
+        return fromSources(*vertSource, *fragSource);
+    }
+
+    Core::Result<Shader> Shader::fromSources(std::string_view vertexSource, std::string_view fragmentSource)
     {
         auto vertResult = compileStage(GL_VERTEX_SHADER, vertexSource);
         if (!vertResult) return std::unexpected(vertResult.error());
