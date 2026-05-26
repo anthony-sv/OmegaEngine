@@ -1,4 +1,4 @@
-﻿#version 460 core
+#version 460 core
 in vec3 v_Color;
 
 out vec4 o_Color;
