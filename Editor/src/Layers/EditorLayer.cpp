@@ -1,6 +1,7 @@
 module;
 
 #include "imgui.h"
+#include "glm/glm.hpp"
 #ifdef _WIN32
 #   include "TitlebarState.hpp"
 #endif
@@ -109,11 +110,20 @@ void EditorLayer::onAttach()
         m_framebuffer.emplace(std::move(*fbResult));
     else
         std::println(std::cerr, "[Ω::EditorLayer] framebuffer failed: {}", fbResult.error().message);
+
+    // ── Camera ─────────────────────────────────────────────────
+    // Orthographic camera centered at the origin. size=1.0 means
+    // the view spans [-1,+1] vertically — same as raw NDC, so the
+    // quad looks identical to before the camera existed. The aspect
+    // ratio will be corrected on the first frame when the viewport
+    // panel reports its actual dimensions.
+    m_camera.emplace(16.0f / 9.0f, 1.0f);
 }
 
 void EditorLayer::onDetach()
 {
     m_framebuffer.reset();
+    m_camera.reset();
     m_texture.reset();
     m_testShader.reset();
     m_vertexArray.reset();
@@ -122,9 +132,50 @@ void EditorLayer::onDetach()
     std::println("[Ω::EditorLayer] detached");
 }
 
+void EditorLayer::onUpdate(float dt)
+{
+    if (!m_camera || !m_viewportHovered) return;
+
+    // ── Temporary camera controls ───────────────────────────────
+    // WASD = pan, Q/E = rotate, mouse wheel = zoom.
+    // Uses ImGui's input queries so we don't need a separate input
+    // system yet. These will be replaced by a proper CameraController
+    // once the editor input pipeline is in place.
+
+    constexpr float panSpeed    = 2.0f;     // world units per second
+    constexpr float rotateSpeed = 90.0f;    // degrees per second
+    constexpr float zoomSpeed   = 0.15f;    // zoom multiplier per scroll tick
+
+    auto position = m_camera->position();
+    auto rotation = m_camera->rotation();
+
+    // Pan — move in camera-local axes so WASD feels correct
+    // even when the camera is rotated.
+    float const rad = glm::radians(rotation);
+    float const c   = std::cos(rad);
+    float const s   = std::sin(rad);
+
+    float const step = panSpeed * dt / m_camera->zoom();    // zoom-compensated
+
+    if (ImGui::IsKeyDown(ImGuiKey_W))  { position.x -= s * step; position.y += c * step; }
+    if (ImGui::IsKeyDown(ImGuiKey_S))  { position.x += s * step; position.y -= c * step; }
+    if (ImGui::IsKeyDown(ImGuiKey_A))  { position.x -= c * step; position.y -= s * step; }
+    if (ImGui::IsKeyDown(ImGuiKey_D))  { position.x += c * step; position.y += s * step; }
+
+    if (ImGui::IsKeyDown(ImGuiKey_Q))  rotation += rotateSpeed * dt;
+    if (ImGui::IsKeyDown(ImGuiKey_E))  rotation -= rotateSpeed * dt;
+
+    // Scroll wheel zoom is handled in onImGuiRender() because
+    // ImGui::GetIO().MouseWheel isn't populated until NewFrame(),
+    // which runs after onUpdate.
+
+    m_camera->setPosition(position);
+    m_camera->setRotation(rotation);
+}
+
 void EditorLayer::onRender(float /*alpha*/)
 {
-    if (!m_testShader || !m_framebuffer || !m_vertexArray || !m_texture) return;
+    if (!m_testShader || !m_framebuffer || !m_vertexArray || !m_texture || !m_camera) return;
 
     // Bind the FBO — all subsequent draw calls render into its color texture instead of the window.
     m_framebuffer->bind();
@@ -132,6 +183,7 @@ void EditorLayer::onRender(float /*alpha*/)
     Engine::Renderer::RenderCommand::clear();
 
     m_testShader->bind();
+    m_testShader->setMat4("u_ViewProjection", m_camera->viewProjection());
     m_texture->bind(0);
     m_vertexArray->bind();
     Engine::Renderer::RenderCommand::drawIndexed(m_vertexArray->indexCount());
@@ -241,8 +293,11 @@ void EditorLayer::onImGuiRender()
     if(m_showViewport)
     {
         // Zero padding so the rendered image fills the panel edge-to-edge.
+        // NoScrollWithMouse prevents ImGui from eating the scroll wheel —
+        // we use it for camera zoom instead.
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::Begin("Viewport", &m_showViewport);
+        ImGui::Begin("Viewport", &m_showViewport,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::PopStyleVar();
 
         if (m_framebuffer)
@@ -258,13 +313,43 @@ void EditorLayer::onImGuiRender()
                 // dragging a splitter, maximizing, etc.). The texture is
                 // recreated at the new resolution.
                 if (w != m_framebuffer->width() || h != m_framebuffer->height())
+                {
                     m_framebuffer->resize(w, h);
+
+                    // Keep the camera's projection in sync with the
+                    // viewport's aspect ratio so the scene doesn't stretch.
+                    if (m_camera)
+                        m_camera->setAspectRatio(
+                            static_cast<float>(w) / static_cast<float>(h)
+                        );
+                }
 
                 // Display the FBO's color texture. UV flip: (0,1)→(1,0)
                 // because OpenGL textures have origin at bottom-left but
                 // ImGui expects origin at top-left.
                 auto const texId = static_cast<ImTextureID>(m_framebuffer->colorAttachment());
                 ImGui::Image(texId, size, ImVec2(0, 1), ImVec2(1, 0));
+            }
+        }
+
+        // Track whether the mouse is over the viewport so camera
+        // controls only fire when the user is interacting here,
+        // not when clicking buttons or typing in other panels.
+        m_viewportHovered = ImGui::IsWindowHovered();
+
+        // Scroll wheel zoom — lives here (not in onUpdate) because
+        // ImGui::GetIO().MouseWheel is only valid after NewFrame().
+        if (m_viewportHovered && m_camera)
+        {
+            constexpr float zoomSpeed = 0.15f;
+            float const wheel = ImGui::GetIO().MouseWheel;
+            if (wheel != 0.0f)
+            {
+                float const zoom = std::clamp(
+                    m_camera->zoom() * (1.0f + wheel * zoomSpeed),
+                    0.1f, 50.0f
+                );
+                m_camera->setZoom(zoom);
             }
         }
 
