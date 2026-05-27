@@ -19,73 +19,23 @@ void EditorLayer::onAttach()
 {
     std::println("[Ω::EditorLayer] attached");
 
-    // Ω::Phase 4 — buffer abstractions ────────────────────────────
-    // Same colored quad as Phase 3, but raw OpenGL calls are now
-    // wrapped in VertexBuffer, IndexBuffer, VertexArray, and
-    // RenderCommand. No GL headers needed in this file anymore.
-
-    // ── Shader (from external GLSL files) ──────────────────────
-    auto shaderResult = Engine::Renderer::Shader::fromFiles(
-        "assets/shaders/test_quad/vertex.glsl",
-        "assets/shaders/test_quad/fragment.glsl"
-    );
-    if (!shaderResult)
+    // ── Batch renderer ─────────────────────────────────────────
+    // Renderer2D::init() creates all the internal GPU resources
+    // the batch renderer needs: its own shader, a 1x1 white pixel
+    // texture, a dynamic VBO, a static IBO, and a VAO. None of
+    // these are exposed — the batch renderer is self-contained.
+    auto initResult = Engine::Renderer::Renderer2D::init();
+    if (!initResult)
     {
-        std::println(std::cerr, "[Ω::EditorLayer] shader failed: {}", shaderResult.error().message);
+        std::println(std::cerr, "[Ω::EditorLayer] Renderer2D init failed: {}", initResult.error().message);
         return;
     }
-    m_testShader.emplace(std::move(*shaderResult));
-
-    // ── Vertex + index data ─────────────────────────────────────
-    constexpr float vertices[] =
-    {
-        //  x      y       r     g     b       u     v
-        -0.5f, -0.5f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f,   // 0 — bottom-left
-         0.5f, -0.5f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f,   // 1 — bottom-right
-         0.5f,  0.5f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f,   // 2 — top-right
-        -0.5f,  0.5f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f,   // 3 — top-left
-    };
-
-    constexpr std::uint32_t indices[] = 
-    { 
-        0, 1, 2, 
-        0, 2, 3 
-    };
-
-    // ── GPU buffers ─────────────────────────────────────────────
-    // The raw DSA calls from Phase 3 (glCreateBuffers, glNamedBuffer*,
-    // glVertexArray*) are now encapsulated in these RAII wrappers.
-    // The VertexArray reads the BufferLayout to auto-configure
-    // attribute format, stride, and binding — no manual index math.
-    using Engine::Renderer::VertexBuffer;
-    using Engine::Renderer::IndexBuffer;
-    using Engine::Renderer::VertexArray;
-    using Engine::Renderer::ShaderDataType;
-
-    auto vb = VertexBuffer::create(vertices, sizeof(vertices));
-    vb.setLayout({
-        { ShaderDataType::Float2, "a_Position" },
-        { ShaderDataType::Float3, "a_Color" },
-        { ShaderDataType::Float2, "a_TexCoord" },
-    });
-
-    auto ib = IndexBuffer::create(indices);
-
-    auto va = VertexArray::create();
-    va.addVertexBuffer(vb);
-    va.setIndexBuffer(ib);
-
-    m_vertexBuffer.emplace(std::move(vb));
-    m_indexBuffer.emplace(std::move(ib));
-    m_vertexArray.emplace(std::move(va));
-
-    std::println("[Ω::EditorLayer] quad ready");
 
     // ── Test texture ───────────────────────────────────────────
-    // Load a real image to verify the texture pipeline end-to-end.
-    // The fragment shader multiplies: texture() * vertex color,
-    // so vertex colors tint the image. Set all colors to white
-    // (1,1,1) if you want to see the texture unmodified.
+    // Load an image to demonstrate textured quads in the batch.
+    // The batch renderer doesn't own this — we pass it by
+    // reference in drawQuad(), and it binds the GL texture at
+    // flush time. The Texture2D must outlive the frame.
     auto texResult = Engine::Renderer::Texture2D::create("assets/textures/wall.jpg");
     if (!texResult)
     {
@@ -94,17 +44,7 @@ void EditorLayer::onAttach()
     }
     m_texture.emplace(std::move(*texResult));
 
-    // Tell the shader which texture unit to sample from.
-    // This only needs to happen once — slot 0 won't change.
-    m_testShader->bind();
-    m_testShader->setInt("u_Texture", 0);
-    m_testShader->unbind();
-
-    // ── Framebuffer (FBO) ───────────────────────────────────────
-    // Instead of rendering to the window (default framebuffer), we
-    // render into an off-screen texture that ImGui displays in the
-    // Viewport panel. Initial size is arbitrary — it resizes to
-    // match the panel dimensions on the first frame.
+    // ── Framebuffer (FBO) ──────────────────────────────────────
     auto fbResult = Engine::Renderer::Framebuffer::create(1280, 720);
     if (fbResult)
         m_framebuffer.emplace(std::move(*fbResult));
@@ -112,12 +52,9 @@ void EditorLayer::onAttach()
         std::println(std::cerr, "[Ω::EditorLayer] framebuffer failed: {}", fbResult.error().message);
 
     // ── Camera ─────────────────────────────────────────────────
-    // Orthographic camera centered at the origin. size=1.0 means
-    // the view spans [-1,+1] vertically — same as raw NDC, so the
-    // quad looks identical to before the camera existed. The aspect
-    // ratio will be corrected on the first frame when the viewport
-    // panel reports its actual dimensions.
-    m_camera.emplace(16.0f / 9.0f, 1.0f);
+    // size=2.0 means the view spans [-2,+2] vertically — enough
+    // to see the test quads spread around the origin.
+    m_camera.emplace(16.0f / 9.0f, 2.0f);
 }
 
 void EditorLayer::onDetach()
@@ -125,10 +62,10 @@ void EditorLayer::onDetach()
     m_framebuffer.reset();
     m_camera.reset();
     m_texture.reset();
-    m_testShader.reset();
-    m_vertexArray.reset();
-    m_indexBuffer.reset();
-    m_vertexBuffer.reset();
+
+    // Shutdown the batch renderer (frees its internal GPU resources).
+    Engine::Renderer::Renderer2D::shutdown();
+
     std::println("[Ω::EditorLayer] detached");
 }
 
@@ -144,7 +81,6 @@ void EditorLayer::onUpdate(float dt)
 
     constexpr float panSpeed    = 2.0f;     // world units per second
     constexpr float rotateSpeed = 90.0f;    // degrees per second
-    constexpr float zoomSpeed   = 0.15f;    // zoom multiplier per scroll tick
 
     auto position = m_camera->position();
     auto rotation = m_camera->rotation();
@@ -175,23 +111,73 @@ void EditorLayer::onUpdate(float dt)
 
 void EditorLayer::onRender(float /*alpha*/)
 {
-    if (!m_testShader || !m_framebuffer || !m_vertexArray || !m_texture || !m_camera) return;
+    if (!m_framebuffer || !m_camera) return;
 
-    // Bind the FBO — all subsequent draw calls render into its color texture instead of the window.
+    // Reset per-frame stats so the Console panel shows this frame's numbers.
+    Engine::Renderer::Renderer2D::resetStats();
+
+    // Bind the FBO — all draw calls go into its color texture.
     m_framebuffer->bind();
     Engine::Renderer::RenderCommand::setClearColor(0.12f, 0.12f, 0.15f, 1.0f);
     Engine::Renderer::RenderCommand::clear();
 
-    m_testShader->bind();
-    m_testShader->setMat4("u_ViewProjection", m_camera->viewProjection());
-    m_texture->bind(0);
-    m_vertexArray->bind();
-    Engine::Renderer::RenderCommand::drawIndexed(m_vertexArray->indexCount());
-    m_vertexArray->unbind();
-    m_testShader->unbind();
+    // ── Begin the batch ─────────────────────────────────────────
+    // After this call, every drawQuad() writes into a CPU staging
+    // buffer. Nothing goes to the GPU until endBatch() flushes.
+    Engine::Renderer::Renderer2D::beginBatch(*m_camera);
 
-    // unbind() returns to the default framebuffer and restores the
-    // viewport dimensions that were active before bind().
+    // ── Textured quad (wall) ────────────────────────────────────
+    // Same wall.jpg from Phase 5, now drawn through the batch
+    // renderer instead of a manual VAO/shader setup.
+    if (m_texture)
+    {
+        Engine::Renderer::Renderer2D::drawQuad(
+            { -0.5f, -0.5f },      // position (bottom-left corner)
+            {  1.0f,  1.0f },      // size (1x1 world unit)
+            *m_texture             // texture (tint = white, tiling = 1.0)
+        );
+    }
+
+    // ── Colored quads ───────────────────────────────────────────
+    // These use the internal 1x1 white texture: white * color = color.
+    // All of these quads are batched into the same draw call as the
+    // textured quad above — that's the whole point of batching.
+    Engine::Renderer::Renderer2D::drawQuad(
+        {  0.8f, -0.3f },
+        {  0.4f,  0.4f },
+        { 1.0f, 0.2f, 0.3f, 1.0f }    // red
+    );
+
+    Engine::Renderer::Renderer2D::drawQuad(
+        { -1.4f,  0.3f },
+        {  0.6f,  0.6f },
+        { 0.2f, 0.3f, 1.0f, 1.0f }    // blue
+    );
+
+    Engine::Renderer::Renderer2D::drawQuad(
+        { -0.8f, -1.2f },
+        {  0.5f,  0.5f },
+        { 0.1f, 0.8f, 0.4f, 1.0f }    // green
+    );
+
+    // ── Rotated quad ────────────────────────────────────────────
+    // Rotation is in degrees, counter-clockwise, around the center.
+    // The batch renderer computes the rotated corners on the CPU
+    // and writes them as pre-transformed vertices into the batch.
+    Engine::Renderer::Renderer2D::drawRotatedQuad(
+        { 0.3f, 0.8f },
+        { 0.5f, 0.5f },
+        45.0f,                          // 45 degrees CCW
+        { 1.0f, 0.8f, 0.1f, 1.0f }     // yellow
+    );
+
+    // ── End the batch ───────────────────────────────────────────
+    // This is where the actual GPU work happens:
+    //   1. Upload the staged vertices to the dynamic VBO.
+    //   2. Bind all textures that were used this batch.
+    //   3. Issue ONE glDrawElements call for all 5 quads above.
+    Engine::Renderer::Renderer2D::endBatch();
+
     m_framebuffer->unbind();
 }
 
@@ -309,32 +295,21 @@ void EditorLayer::onImGuiRender()
                 auto const w = static_cast<std::uint32_t>(size.x);
                 auto const h = static_cast<std::uint32_t>(size.y);
 
-                // Resize the FBO when the panel dimensions change (user
-                // dragging a splitter, maximizing, etc.). The texture is
-                // recreated at the new resolution.
                 if (w != m_framebuffer->width() || h != m_framebuffer->height())
                 {
                     m_framebuffer->resize(w, h);
 
-                    // Keep the camera's projection in sync with the
-                    // viewport's aspect ratio so the scene doesn't stretch.
                     if (m_camera)
                         m_camera->setAspectRatio(
                             static_cast<float>(w) / static_cast<float>(h)
                         );
                 }
 
-                // Display the FBO's color texture. UV flip: (0,1)→(1,0)
-                // because OpenGL textures have origin at bottom-left but
-                // ImGui expects origin at top-left.
                 auto const texId = static_cast<ImTextureID>(m_framebuffer->colorAttachment());
                 ImGui::Image(texId, size, ImVec2(0, 1), ImVec2(1, 0));
             }
         }
 
-        // Track whether the mouse is over the viewport so camera
-        // controls only fire when the user is interacting here,
-        // not when clicking buttons or typing in other panels.
         m_viewportHovered = ImGui::IsWindowHovered();
 
         // Scroll wheel zoom — lives here (not in onUpdate) because
@@ -379,6 +354,16 @@ void EditorLayer::onImGuiRender()
                            "[Ω] Docking + Viewports enabled");
         ImGui::TextColored({ 0.5f, 0.5f, 0.7f, 1.0f },
                            "[Ω] Fixed timestep: 60Hz (%.2fms)", 1000.0f / 60.0f);
+
+        // ── Batch renderer stats ────────────────────────────────
+        // Shows how many draw calls and quads were submitted this
+        // frame. With batching, 5 quads = 1 draw call (not 5).
+        auto const stats = Engine::Renderer::Renderer2D::stats();
+        ImGui::Separator();
+        ImGui::TextColored({ 0.5f, 0.7f, 0.9f, 1.0f },
+                           "[Ω] Draw calls: %u  |  Quads: %u",
+                           stats.drawCalls, stats.quadCount);
+
         ImGui::End();
     }
 

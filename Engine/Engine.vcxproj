@@ -173,6 +173,8 @@
     <ClCompile Include="src\Renderer\Engine.Renderer-Texture.cpp" />
     <ClCompile Include="modules\Renderer\Engine.Renderer-Camera2D.cppm" />
     <ClCompile Include="src\Renderer\Engine.Renderer-Camera2D.cpp" />
+    <ClCompile Include="modules\Renderer\Engine.Renderer-BatchRenderer2D.cppm" />
+    <ClCompile Include="src\Renderer\Engine.Renderer-BatchRenderer2D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Core\EntryPoint.hpp" />

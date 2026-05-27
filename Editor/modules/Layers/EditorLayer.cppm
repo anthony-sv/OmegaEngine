@@ -19,13 +19,10 @@ private:
     bool m_showInspector { true };
     bool m_showHierarchy { true };
     bool m_showConsole   { true };
+
     bool m_viewportHovered { false };
 
-    // Ω::Renderer — test quad
-    std::optional<Engine::Renderer::Shader>       m_testShader;
-    std::optional<Engine::Renderer::VertexBuffer> m_vertexBuffer;
-    std::optional<Engine::Renderer::IndexBuffer>  m_indexBuffer;
-    std::optional<Engine::Renderer::VertexArray>  m_vertexArray;
+    // Ω::Renderer — resources that EditorLayer owns
     std::optional<Engine::Renderer::Texture2D>    m_texture;
     std::optional<Engine::Renderer::Camera2D>     m_camera;
 
