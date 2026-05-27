@@ -7,4 +7,5 @@ export import :Framebuffer;
 export import :RenderCommand;
 export import :Texture;
 export import :Camera2D;
+export import :SubTexture2D;
 export import :BatchRenderer2D;

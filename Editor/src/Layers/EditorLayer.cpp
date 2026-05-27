@@ -44,6 +44,54 @@ void EditorLayer::onAttach()
     }
     m_texture.emplace(std::move(*texResult));
 
+    // ── Sprite sheet (P8) ─────────────────────────────────────
+    // Load a sprite sheet atlas. SubTexture2D instances will
+    // reference sub-regions of this texture via UV coordinates.
+    // The Texture2D must outlive all SubTexture2D that point to it.
+    auto sheetResult = Engine::Renderer::Texture2D::create("assets/textures/Sheet.png");
+    if (sheetResult)
+    {
+        m_spriteSheet.emplace(std::move(*sheetResult));
+
+        // Extract individual sprites from the grid-based sheet.
+        // createFromGrid converts (column, row) image-space
+        // coordinates into OpenGL UV rectangles, handling the
+        // Y-axis flip automatically.
+        //
+        // Sheet.png is 128x64, laid out as a 2-column × 1-row grid.
+        // Each cell is 64x64 pixels:
+        //   column 0 = red-dress character
+        //   column 1 = black-dress character
+
+        m_spriteA.emplace(Engine::Renderer::SubTexture2D::createFromGrid(
+            *m_spriteSheet,
+            { 0.0f, 0.0f },        // column 0, row 0 (red dress)
+            { 64.0f, 64.0f }       // each cell is 64x64 pixels
+        ));
+
+        m_spriteB.emplace(Engine::Renderer::SubTexture2D::createFromGrid(
+            *m_spriteSheet,
+            { 1.0f, 0.0f },        // column 1, row 0 (black dress)
+            { 64.0f, 64.0f }
+        ));
+
+        m_spriteC.emplace(Engine::Renderer::SubTexture2D::createFromGrid(
+            *m_spriteSheet,
+            { 1.0f, 0.0f },        // column 1 again, rotated in the scene
+            { 64.0f, 64.0f }
+        ));
+
+        std::println(
+            "[Ω::EditorLayer] sprite sheet loaded ({}x{}) — 3 sub-textures created",
+            m_spriteSheet->width(), 
+            m_spriteSheet->height()
+        );
+    }
+    else
+    {
+        std::println(std::cerr, "[Ω::EditorLayer] sprite sheet failed: {}", sheetResult.error().message);
+    }
+
     // ── Framebuffer (FBO) ──────────────────────────────────────
     auto fbResult = Engine::Renderer::Framebuffer::create(1280, 720);
     if (fbResult)
@@ -61,6 +109,17 @@ void EditorLayer::onDetach()
 {
     m_framebuffer.reset();
     m_camera.reset();
+
+    // SubTexture2D must be destroyed BEFORE the atlas they reference.
+    // SubTexture2D holds a non-owning pointer to the Texture2D, so
+    // the atlas must still be alive when SubTexture2D's destructor runs.
+    // (In practice SubTexture2D is trivially destructible, but keeping
+    // the order correct is good hygiene for future changes.)
+    m_spriteA.reset();
+    m_spriteB.reset();
+    m_spriteC.reset();
+    m_spriteSheet.reset();
+
     m_texture.reset();
 
     // Shutdown the batch renderer (frees its internal GPU resources).
@@ -171,11 +230,51 @@ void EditorLayer::onRender(float /*alpha*/)
         { 1.0f, 0.8f, 0.1f, 1.0f }     // yellow
     );
 
+    // ── Sprite sheet quads (P8) ─────────────────────────────────
+    // These quads use SubTexture2D — each one renders a different
+    // sub-region of the same sprite sheet atlas. The atlas texture
+    // only occupies ONE texture slot in the batch, no matter how
+    // many different sub-textures we draw from it. That's the
+    // performance win: 100 different sprites, 1 texture slot.
+    if (m_spriteA)
+    {
+        Engine::Renderer::Renderer2D::drawQuad(
+            { -2.0f, -0.5f },      // to the left of the wall quad
+            {  0.5f,  0.5f },
+            *m_spriteA
+        );
+    }
+
+    if (m_spriteB)
+    {
+        Engine::Renderer::Renderer2D::drawQuad(
+            { -2.0f,  0.2f },      // above sprite A
+            {  0.5f,  0.5f },
+            *m_spriteB
+        );
+    }
+
+    if (m_spriteC)
+    {
+        // Draw spriteC rotated to show that drawRotatedQuad works
+        // with sub-textures too. Same rotation math as any other
+        // rotated quad — the only difference is the UV sub-region.
+        Engine::Renderer::Renderer2D::drawRotatedQuad(
+            { -2.0f,  0.9f },      // above sprite B
+            {  0.5f,  0.5f },
+            30.0f,                  // slight tilt
+            *m_spriteC
+        );
+    }
+
     // ── End the batch ───────────────────────────────────────────
     // This is where the actual GPU work happens:
     //   1. Upload the staged vertices to the dynamic VBO.
     //   2. Bind all textures that were used this batch.
-    //   3. Issue ONE glDrawElements call for all 5 quads above.
+    //   3. Issue ONE glDrawElements call for all quads above.
+    // Note: wall.jpg and the sprite sheet are two different textures,
+    // each in their own slot. But all 3 sprite sub-textures share
+    // the same atlas slot — that's the atlas advantage.
     Engine::Renderer::Renderer2D::endBatch();
 
     m_framebuffer->unbind();

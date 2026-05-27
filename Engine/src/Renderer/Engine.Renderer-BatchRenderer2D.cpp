@@ -74,15 +74,20 @@ namespace Engine::Renderer
 
     // ── CPU-side vertex staging buffer ──────────────────────────────────
     // This is where drawQuad() writes vertices. It's a flat contiguous
-    // array in regular memory (not GPU memory). At flush time, the used
+    // block in regular memory (not GPU memory). At flush time, the used
     // portion is uploaded to the GPU via VertexBuffer::setSubData().
+    //
+    // We use a std::vector instead of std::array because MSVC's module
+    // compiler (C1060) runs out of heap space when instantiating a
+    // std::array<BatchVertex, 40000> in a heavily-imported TU. The
+    // vector is resized once in init() and never reallocated after that.
 
     // s_vertexPtr is a write cursor. It starts at the beginning of the
-    // array each batch. drawQuad() writes 4 vertices at the cursor and
+    // vector each batch. drawQuad() writes 4 vertices at the cursor and
     // advances it by 4. At flush time, the byte count is:
     //   (s_vertexPtr - s_vertexStorage.data()) * sizeof(BatchVertex)
 
-    static std::array<BatchVertex, MaxVertices> s_vertexStorage {};
+    static std::vector<BatchVertex> s_vertexStorage;
     static BatchVertex* s_vertexPtr = nullptr;
 
     // ── Texture slot tracking ───────────────────────────────────────────
@@ -234,6 +239,54 @@ namespace Engine::Renderer
         s_quadCount++;
     }
 
+
+    // ── emitQuadVertices (sub-region UVs) ──────────────────────────────
+    // Same as above, but instead of using the full-texture QuadUVs
+    // [0,0]-[1,1], uses a custom UV rectangle defined by uvMin / uvMax.
+    // This is the key function for texture atlas / sprite sheet rendering.
+    //
+    // The 4 UV corners are derived from the min/max bounds, matching the
+    // same vertex winding order as QuadUVs: BL → BR → TR → TL.
+    //
+    //   uvMin = bottom-left  corner of the sub-region (in UV space).
+    //   uvMax = top-right    corner of the sub-region (in UV space).
+    //
+    //   TL (uvMin.x, uvMax.y) ──── TR (uvMax.x, uvMax.y)
+    //          │                        │
+    //          │    sub-region UVs      │
+    //          │                        │
+    //   BL (uvMin.x, uvMin.y) ──── BR (uvMax.x, uvMin.y)
+
+    static void emitQuadVertices(
+        glm::vec2 const (&positions)[4],
+        glm::vec4 const& color,
+        float texIndex,
+        float tilingFactor,
+        glm::vec2 const& uvMin,
+        glm::vec2 const& uvMax
+    )
+    {
+        glm::vec2 const uvs[4] =
+        {
+            { uvMin.x, uvMin.y },       // bottom-left
+            { uvMax.x, uvMin.y },       // bottom-right
+            { uvMax.x, uvMax.y },       // top-right
+            { uvMin.x, uvMax.y },       // top-left
+        };
+
+        for (std::uint32_t i = 0; i < 4; ++i)
+        {
+            s_vertexPtr->position     = positions[i];
+            s_vertexPtr->color        = color;
+            s_vertexPtr->texCoord     = uvs[i];
+            s_vertexPtr->texIndex     = texIndex;
+            s_vertexPtr->tilingFactor = tilingFactor;
+            s_vertexPtr++;
+        }
+
+        s_quadCount++;
+    }
+
     // ── init ────────────────────────────────────────────────────────────
     // Creates all GPU resources the batch renderer needs. Call once
     // after the OpenGL context is ready (typically in onAttach).
@@ -247,6 +300,12 @@ namespace Engine::Renderer
 
     Core::VoidResult Renderer2D::init()
     {
+        // ── 0. CPU staging buffer ───────────────────────────────
+        // Allocate the vertex staging buffer on the heap. This is
+        // done once and never reallocated. 40,000 vertices × 40
+        // bytes = 1.6 MB — perfectly fine on the heap.
+        s_vertexStorage.resize(MaxVertices);
+
         // ── 1. Shader ───────────────────────────────────────────
         auto shaderResult = Shader::fromFiles(
             "assets/shaders/batch_quad/vertex.glsl",
@@ -365,6 +424,11 @@ namespace Engine::Renderer
         s_whiteTexture.reset();
         s_batchShader.reset();
 
+        // Free the CPU staging buffer.
+        s_vertexStorage.clear();
+        s_vertexStorage.shrink_to_fit();
+        s_vertexPtr = nullptr;
+
         std::println("[Ω::Renderer2D] shut down");
     }
 
@@ -428,7 +492,12 @@ namespace Engine::Renderer
         };
 
         // texIndex = 0 (white texture), tilingFactor = 1.0
-        emitQuadVertices(corners, color, 0.0f, 1.0f);
+        emitQuadVertices(
+            corners, 
+            color, 
+            0.0f, 
+            1.0f
+        );
     }
 
     // ── drawQuad (textured) ─────────────────────────────────────────────
@@ -458,7 +527,53 @@ namespace Engine::Renderer
             { position.x,          position.y + size.y },
         };
 
-        emitQuadVertices(corners, tintColor, texIndex, tilingFactor);
+        emitQuadVertices(
+            corners, 
+            tintColor, 
+            texIndex, 
+            tilingFactor
+        );
+    }
+
+    // ── drawQuad (sub-texture / sprite sheet) ─────────────────────────
+    // Draws an axis-aligned quad using a sub-region of a texture atlas.
+    // The UV rectangle comes from SubTexture2D, and the GL texture ID
+    // comes from SubTexture2D::texture(). Everything else is identical
+    // to the Texture2D overload above.
+
+    void Renderer2D::drawQuad(
+        glm::vec2 const& position,
+        glm::vec2 const& size,
+        SubTexture2D const& subTexture,
+        glm::vec4 const& tintColor,
+        float tilingFactor
+    )
+    {
+        if (s_quadCount >= MaxQuads)
+            flushAndReset();
+
+        // The atlas texture goes into a slot just like any Texture2D.
+        // Multiple SubTexture2D instances sharing the same atlas will
+        // reuse the same slot — that's the whole point of atlasing.
+        float const texIndex = findOrAssignTextureSlot(subTexture.texture().id());
+
+        glm::vec2 const corners[4] =
+        {
+            position,
+            { position.x + size.x, position.y },
+            { position.x + size.x, position.y + size.y },
+            { position.x,          position.y + size.y },
+        };
+
+        // Use the sub-region UV overload instead of the full-texture one.
+        emitQuadVertices(
+            corners, 
+            tintColor, 
+            texIndex, 
+            tilingFactor,
+            subTexture.uvMin(),
+            subTexture.uvMax()
+        );
     }
 
     // ── drawRotatedQuad (color only) ────────────────────────────────────
@@ -518,7 +633,12 @@ namespace Engine::Renderer
             };
         }
 
-        emitQuadVertices(corners, color, 0.0f, 1.0f);
+        emitQuadVertices(
+            corners, 
+            color, 
+            0.0f, 
+            1.0f
+        );
     }
 
 
@@ -564,7 +684,66 @@ namespace Engine::Renderer
             };
         }
 
-        emitQuadVertices(corners, tintColor, texIndex, tilingFactor);
+        emitQuadVertices(
+            corners, 
+            tintColor, 
+            texIndex, 
+            tilingFactor
+        );
+    }
+
+    // ── drawRotatedQuad (sub-texture / sprite sheet) ──────────────────
+    // Rotated quad using a sub-region of a texture atlas.
+    // Same rotation math as the other drawRotatedQuad overloads,
+    // but passes the sub-region UVs instead of the full [0,1] range.
+
+    void Renderer2D::drawRotatedQuad(
+        glm::vec2 const& position,
+        glm::vec2 const& size,
+        float rotationDegrees,
+        SubTexture2D const& subTexture,
+        glm::vec4 const& tintColor,
+        float tilingFactor
+    )
+    {
+        if (s_quadCount >= MaxQuads)
+            flushAndReset();
+
+        float const texIndex = findOrAssignTextureSlot(subTexture.texture().id());
+
+        float const rad = glm::radians(rotationDegrees);
+        float const c   = std::cos(rad);
+        float const s   = std::sin(rad);
+
+        glm::vec2 const center = position + size * 0.5f;
+        glm::vec2 const half   = size * 0.5f;
+
+        glm::vec2 const offsets[4] =
+        {
+            { -half.x, -half.y },
+            {  half.x, -half.y },
+            {  half.x,  half.y },
+            { -half.x,  half.y },
+        };
+
+        glm::vec2 corners[4];
+        for (std::uint32_t i = 0; i < 4; ++i)
+        {
+            corners[i] =
+            {
+                center.x + offsets[i].x * c - offsets[i].y * s,
+                center.y + offsets[i].x * s + offsets[i].y * c,
+            };
+        }
+
+        emitQuadVertices(
+            corners, 
+            tintColor, 
+            texIndex, 
+            tilingFactor,
+            subTexture.uvMin(), 
+            subTexture.uvMax()
+        );
     }
 
     // ── Stats ───────────────────────────────────────────────────────────

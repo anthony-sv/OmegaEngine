@@ -5,6 +5,7 @@ module;
 export module Engine.Renderer:BatchRenderer2D;
 
 import :Texture;
+import :SubTexture2D;
 import :Camera2D;
 import Engine.Core;
 import std;
@@ -106,6 +107,19 @@ namespace Engine::Renderer
             float tilingFactor = 1.0f
         );
 
+        // ── Sub-texture quads (texture atlas / sprite sheet) ───────
+        // Same as the Texture2D overloads, but uses the UV sub-region
+        // stored in the SubTexture2D instead of the full [0,1] range.
+        // This is how you draw individual sprites from a sprite sheet.
+
+        static void drawQuad(
+            glm::vec2 const& position,
+            glm::vec2 const& size,
+            SubTexture2D const& subTexture,
+            glm::vec4 const& tintColor = glm::vec4(1.0f),
+            float tilingFactor = 1.0f
+        );
+
         // ── Rotated quads ──────────────────────────────────────────
         // Same as above but rotated around the quad's center.
         // Rotation is in degrees, counter-clockwise positive.
@@ -122,6 +136,15 @@ namespace Engine::Renderer
             glm::vec2 const& size,
             float rotationDegrees,
             Texture2D const& texture,
+            glm::vec4 const& tintColor = glm::vec4(1.0f),
+            float tilingFactor = 1.0f
+        );
+
+        static void drawRotatedQuad(
+            glm::vec2 const& position,
+            glm::vec2 const& size,
+            float rotationDegrees,
+            SubTexture2D const& subTexture,
             glm::vec4 const& tintColor = glm::vec4(1.0f),
             float tilingFactor = 1.0f
         );

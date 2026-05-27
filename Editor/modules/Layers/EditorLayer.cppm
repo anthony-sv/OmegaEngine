@@ -28,4 +28,12 @@ private:
 
     // Ω::Renderer Phase 2 — off-screen render target for the Viewport panel
     std::optional<Engine::Renderer::Framebuffer> m_framebuffer;
+
+    // Ω::Renderer Phase 8 — sprite sheet atlas and sub-textures
+    // The atlas (m_spriteSheet) must outlive every SubTexture2D that
+    // references it, because SubTexture2D holds a non-owning pointer.
+    std::optional<Engine::Renderer::Texture2D>    m_spriteSheet;
+    std::optional<Engine::Renderer::SubTexture2D> m_spriteA;
+    std::optional<Engine::Renderer::SubTexture2D> m_spriteB;
+    std::optional<Engine::Renderer::SubTexture2D> m_spriteC;
 }; // class EditorLayer
