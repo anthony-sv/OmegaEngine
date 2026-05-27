@@ -18,6 +18,7 @@
         "opengl3-binding"
       ]
     },
-    "glm"
+    "glm",
+    "stb"
   ]
 }

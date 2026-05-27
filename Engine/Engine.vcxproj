@@ -169,6 +169,8 @@
     <ClCompile Include="src\Renderer\Engine.Renderer-RenderCommand.cpp" />
     <ClCompile Include="modules\Renderer\Engine.Renderer-Framebuffer.cppm" />
     <ClCompile Include="src\Renderer\Engine.Renderer-Framebuffer.cpp" />
+    <ClCompile Include="modules\Renderer\Engine.Renderer-Texture.cppm" />
+    <ClCompile Include="src\Renderer\Engine.Renderer-Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Core\EntryPoint.hpp" />

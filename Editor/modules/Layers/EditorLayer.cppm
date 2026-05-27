@@ -1,4 +1,4 @@
-﻿export module EditorLayer;
+export module EditorLayer;
 
 import Engine.Core;
 import Engine.Renderer;
@@ -24,6 +24,7 @@ private:
     std::optional<Engine::Renderer::VertexBuffer> m_vertexBuffer;
     std::optional<Engine::Renderer::IndexBuffer>  m_indexBuffer;
     std::optional<Engine::Renderer::VertexArray>  m_vertexArray;
+    std::optional<Engine::Renderer::Texture2D>    m_texture;
 
     // Ω::Renderer Phase 2 — off-screen render target for the Viewport panel
     std::optional<Engine::Renderer::Framebuffer> m_framebuffer;

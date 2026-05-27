@@ -5,3 +5,4 @@ export import :VertexArray;
 export import :Shader;
 export import :Framebuffer;
 export import :RenderCommand;
+export import :Texture;

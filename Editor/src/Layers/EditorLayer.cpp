@@ -1,4 +1,4 @@
-﻿module;
+module;
 
 #include "imgui.h"
 #ifdef _WIN32
@@ -38,11 +38,11 @@ void EditorLayer::onAttach()
     // ── Vertex + index data ─────────────────────────────────────
     constexpr float vertices[] =
     {
-        //  x      y       r     g     b
-        -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   // 0 — bottom-left  (red)
-         0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   // 1 — bottom-right (green)
-         0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   // 2 — top-right    (blue)
-        -0.5f,  0.5f,   1.0f, 1.0f, 0.0f,   // 3 — top-left     (yellow)
+        //  x      y       r     g     b       u     v
+        -0.5f, -0.5f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f,   // 0 — bottom-left
+         0.5f, -0.5f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f,   // 1 — bottom-right
+         0.5f,  0.5f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f,   // 2 — top-right
+        -0.5f,  0.5f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f,   // 3 — top-left
     };
 
     constexpr std::uint32_t indices[] = 
@@ -65,6 +65,7 @@ void EditorLayer::onAttach()
     vb.setLayout({
         { ShaderDataType::Float2, "a_Position" },
         { ShaderDataType::Float3, "a_Color" },
+        { ShaderDataType::Float2, "a_TexCoord" },
     });
 
     auto ib = IndexBuffer::create(indices);
@@ -78,6 +79,25 @@ void EditorLayer::onAttach()
     m_vertexArray.emplace(std::move(va));
 
     std::println("[Ω::EditorLayer] quad ready");
+
+    // ── Test texture ───────────────────────────────────────────
+    // Load a real image to verify the texture pipeline end-to-end.
+    // The fragment shader multiplies: texture() * vertex color,
+    // so vertex colors tint the image. Set all colors to white
+    // (1,1,1) if you want to see the texture unmodified.
+    auto texResult = Engine::Renderer::Texture2D::create("assets/textures/wall.jpg");
+    if (!texResult)
+    {
+        std::println(std::cerr, "[Ω::EditorLayer] texture failed: {}", texResult.error().message);
+        return;
+    }
+    m_texture.emplace(std::move(*texResult));
+
+    // Tell the shader which texture unit to sample from.
+    // This only needs to happen once — slot 0 won't change.
+    m_testShader->bind();
+    m_testShader->setInt("u_Texture", 0);
+    m_testShader->unbind();
 
     // ── Framebuffer (FBO) ───────────────────────────────────────
     // Instead of rendering to the window (default framebuffer), we
@@ -94,6 +114,7 @@ void EditorLayer::onAttach()
 void EditorLayer::onDetach()
 {
     m_framebuffer.reset();
+    m_texture.reset();
     m_testShader.reset();
     m_vertexArray.reset();
     m_indexBuffer.reset();
@@ -103,7 +124,7 @@ void EditorLayer::onDetach()
 
 void EditorLayer::onRender(float /*alpha*/)
 {
-    if (!m_testShader || !m_framebuffer || !m_vertexArray) return;
+    if (!m_testShader || !m_framebuffer || !m_vertexArray || !m_texture) return;
 
     // Bind the FBO — all subsequent draw calls render into its color texture instead of the window.
     m_framebuffer->bind();
@@ -111,6 +132,7 @@ void EditorLayer::onRender(float /*alpha*/)
     Engine::Renderer::RenderCommand::clear();
 
     m_testShader->bind();
+    m_texture->bind(0);
     m_vertexArray->bind();
     Engine::Renderer::RenderCommand::drawIndexed(m_vertexArray->indexCount());
     m_vertexArray->unbind();

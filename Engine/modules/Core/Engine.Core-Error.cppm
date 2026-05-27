@@ -30,6 +30,7 @@ namespace Engine::Core {
 		ShaderLinkFailed			= 201,
 		FramebufferCreationFailed	= 202,
 		FileReadFailed				= 300,
+		TextureLoadFailed			= 301,
 	};
 
 	// Ω::ErrorInfo ───────────────────────────────────────────────────
