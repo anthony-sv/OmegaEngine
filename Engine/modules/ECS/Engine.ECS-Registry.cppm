@@ -243,6 +243,14 @@ namespace Engine::ECS
             return static_cast<std::size_t>(m_registry.storage<entt::entity>()->free_list());
         }
 
+        // Destroy ALL entities and their components. The Registry stays
+        // usable afterward (you can create fresh entities). Used by
+        // Scene::clear() when a scene is torn down on exit.
+        void clear()
+        {
+            m_registry.clear();
+        }
+
 
         // -- Escape hatch -----------------------------------------------
         // Direct access to entt::registry for advanced features.

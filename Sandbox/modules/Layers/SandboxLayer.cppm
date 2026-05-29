@@ -3,6 +3,7 @@ export module SandboxLayer;
 import Engine.Core;
 import Engine.Renderer;
 import Engine.ECS;
+import Engine.Scene;
 import std;
 
 // =================================================================
@@ -13,12 +14,19 @@ import std;
 //
 // Shows the engine being driven entirely through its public API:
 //
-//   1. Renderer2D::init()                  (onAttach)
-//   2. build an ECS scene in a Registry    (onAttach)
-//   3. mutate components each frame         (onUpdate)
-//   4. RenderSystem draws the scene         (onRender)
+//   1. Renderer2D::init()                            (onAttach)
+//   2. register two named scenes with the manager    (onAttach)
+//      - each builds its entities + MovementSystem in its onEnter hook
+//        and tears them down in its onExit hook (data-driven, no
+//        Scene subclassing)
+//   3. switchTo("Grid") to pick the initial scene     (onAttach)
+//   4. every few seconds, switchTo the other scene    (onUpdate)
+//      -> proves DEFERRED switching + enter/exit hooks
+//   5. m_sceneManager.onUpdate(dt) applies the pending switch then
+//      ticks the active scene's systems               (onUpdate)
+//   6. RenderSystem draws the ACTIVE scene's registry  (onRender)
 //
-// No framebuffer, no ImGui -- it renders straight to the window.
+// No framebuffer, no ImGui; it renders straight to the window.
 //
 // =================================================================
 
@@ -38,14 +46,13 @@ private:
     // not at layer construction time.
     std::optional<Engine::Renderer::Camera2D> m_camera;
 
-    // The scene database. Rule of zero -- a plain value member.
-    Engine::ECS::Registry m_registry;
+    // Owns every world and tracks the active one. The layer holds the
+    // MANAGER, not a World -- so multiple scenes (and switching between
+    // them) are first-class.
+    Engine::Scene::SceneManager m_sceneManager;
 
-    // A handle to one entity we animate every frame, to exercise the
-    // live ECS write path (get<Transform>() mutation). Default-null
-    // until onAttach creates it.
-    Engine::ECS::Entity m_spinner;
-
-    // Accumulated time, used to drive the demo animation.
-    float m_elapsed { 0.0f };
+    // Demo: auto-toggle between the two scenes on a timer (no input
+    // system yet). Proves deferred switching + enter/exit hooks live.
+    float m_switchTimer { 0.0f };
+    bool  m_showGrid    { true };
 }; // class SandboxLayer

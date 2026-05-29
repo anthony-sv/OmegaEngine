@@ -15,3 +15,4 @@ export module Engine.Systems;
 //   :PhysicsSystem    -- collisions / dynamics   (fixed step)    [later]
 
 export import :RenderSystem;
+export import :MovementSystem;

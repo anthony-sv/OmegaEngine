@@ -3,6 +3,7 @@ export module EditorLayer;
 import Engine.Core;
 import Engine.Renderer;
 import Engine.ECS;
+import Engine.Scene;
 import std;
 
 export class EditorLayer final: public Engine::Core::ILayer {
@@ -38,7 +39,5 @@ private:
     std::optional<Engine::Renderer::SubTexture2D> m_spriteB;
     std::optional<Engine::Renderer::SubTexture2D> m_spriteC;
 
-    // Entities created here (with Transform + SpriteRenderer) are
-    // drawn by iterating a view in onRender().
-    Engine::ECS::Registry m_registry;
+    Engine::Scene::SceneManager m_sceneManager;
 }; // class EditorLayer

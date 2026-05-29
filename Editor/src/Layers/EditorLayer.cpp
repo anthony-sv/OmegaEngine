@@ -11,6 +11,7 @@ module EditorLayer;
 import Engine.Core;
 import Engine.Renderer;
 import Engine.ECS;
+import Engine.Scene;
 import Engine.Systems;
 
 EditorLayer::EditorLayer()
@@ -106,46 +107,50 @@ void EditorLayer::onAttach()
     // to see the test quads spread around the origin.
     m_camera.emplace(16.0f / 9.0f, 2.0f);
 
-    // Create a few entities, each with a Transform (where/how big)
-    // and a SpriteRenderer (what color). onRender() iterates a view
-    // over <Transform, SpriteRenderer> and draws each one.
-
+    // ── ECS world ──────────────────────────────────────
+    // The viewport now renders a managed World not a loose Registry. 
+    // 
+    // The world's content is built in its onEnter hook: three quads carrying angular Velocity2D, plus a
+    // MovementSystem that spins them -- so the editor viewport visibly
+    // exercises the system model too.
+    //
     // create(name) auto-adds a NameComponent, so these entities are
-    // already identifiable (useful once the Hierarchy panel reads
-    // the registry). add<T>(...) forwards to the component's ctor.
+    // already identifiable (useful once the Hierarchy panel reads the
+    // active world's registry).
+    auto& world = m_sceneManager.create("Editor");
+    world.setOnEnter([](Engine::Scene::World& w)
     {
-        auto e1 = m_registry.create("ECS Quad — magenta");
+        auto spin = [](float deg) {
+            return Engine::ECS::Velocity2D{ .linear = { 0.0f, 0.0f }, .angular = deg };
+        };
+
+        auto e1 = w.createEntity("ECS Quad — magenta");
         e1.add<Engine::ECS::Transform>(Engine::ECS::Transform{
-            .position = { 2.0f,  0.6f },
-            .rotation = 0.0f,
-            .scale    = { 0.4f, 0.4f }
-        });
+            .position = { 2.0f, 0.6f }, .rotation = 0.0f, .scale = { 0.4f, 0.4f } });
         e1.add<Engine::ECS::SpriteRenderer>(Engine::ECS::SpriteRenderer{
-            .color = { 0.9f, 0.2f, 0.9f, 1.0f }
-        });
+            .color = { 0.9f, 0.2f, 0.9f, 1.0f } });
+        e1.add<Engine::ECS::Velocity2D>(spin(60.0f));
 
-        auto e2 = m_registry.create("ECS Quad — cyan");
+        auto e2 = w.createEntity("ECS Quad — cyan");
         e2.add<Engine::ECS::Transform>(Engine::ECS::Transform{
-            .position = { 2.0f, -0.1f },
-            .rotation = 0.0f,
-            .scale    = { 0.4f, 0.4f }
-        });
+            .position = { 2.0f, -0.1f }, .rotation = 0.0f, .scale = { 0.4f, 0.4f } });
         e2.add<Engine::ECS::SpriteRenderer>(Engine::ECS::SpriteRenderer{
-            .color = { 0.2f, 0.9f, 0.9f, 1.0f }
-        });
+            .color = { 0.2f, 0.9f, 0.9f, 1.0f } });
+        e2.add<Engine::ECS::Velocity2D>(spin(-60.0f));
 
-        auto e3 = m_registry.create("ECS Quad — orange (rotated)");
+        auto e3 = w.createEntity("ECS Quad — orange");
         e3.add<Engine::ECS::Transform>(Engine::ECS::Transform{
-            .position = { 2.0f, -0.8f },
-            .rotation = 25.0f,
-            .scale    = { 0.4f, 0.4f }
-        });
+            .position = { 2.0f, -0.8f }, .rotation = 25.0f, .scale = { 0.4f, 0.4f } });
         e3.add<Engine::ECS::SpriteRenderer>(Engine::ECS::SpriteRenderer{
-            .color = { 1.0f, 0.6f, 0.1f, 1.0f }
-        });
+            .color = { 1.0f, 0.6f, 0.1f, 1.0f } });
+        e3.add<Engine::ECS::Velocity2D>(spin(90.0f));
 
-        std::println("[Ω::EditorLayer] ECS scene: {} entities created", m_registry.entityCount());
-    }
+        w.addSystem<Engine::Systems::MovementSystem>();
+
+        std::println("[Ω::EditorLayer] world '{}' built — {} entities", w.name(), w.registry().entityCount());
+    });
+
+    m_sceneManager.switchTo("Editor");
 }
 
 void EditorLayer::onDetach()
@@ -173,6 +178,10 @@ void EditorLayer::onDetach()
 
 void EditorLayer::onUpdate(float dt)
 {
+    // Advance the active world's systems (spins the ECS quads). Runs
+    // every frame, regardless of whether the viewport has focus.
+    m_sceneManager.onUpdate(dt);
+
     if (!m_camera || !m_viewportHovered) return;
 
     // ── Temporary camera controls ───────────────────────────────
@@ -315,15 +324,15 @@ void EditorLayer::onRender(float /*alpha*/)
     // a single draw call.
     Engine::Renderer::Renderer2D::endBatch();
 
-    // ── ECS render pass ────────────────────────────────────
-    // Hand the scene to the RenderSystem. It opens its OWN batch,
-    // iterates every entity that has Transform + SpriteRenderer,
-    // draws each one, and flushes. This is the engine's first
-    // data-driven render path: the EditorLayer no longer touches the
-    // view or the iterator — it just owns the registry and the camera
-    // and lets the system do the work. The FBO is still bound here, so
-    // these quads land in the same off-screen target as the demo batch.
-    Engine::Systems::RenderSystem::render(m_registry, *m_camera);
+    // ── ECS render pass ─────────────────────────────────────────
+    // Hand the ACTIVE world's registry to the RenderSystem. It opens
+    // its own batch, iterates every entity with Transform +
+    // SpriteRenderer, draws each, and flushes. The EditorLayer no
+    // longer owns a Registry — it asks the SceneManager for the active
+    // world. The FBO is still bound here, so these quads land in the
+    // same off-screen target as the demo batch.
+    if (auto* world = m_sceneManager.active())
+        Engine::Systems::RenderSystem::render(world->registry(), *m_camera);
 
     m_framebuffer->unbind();
 }
