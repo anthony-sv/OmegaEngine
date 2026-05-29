@@ -20,6 +20,9 @@ SandboxApp::SandboxApp()
 
 void SandboxApp::onInit()
 {
+    // Input is a Core platform device, driven by the Application loop --
+    // nothing to register here. Just query Engine::Core::Input anywhere.
+
     // One gameplay layer. No ImGui overlay -- this is a bare game window.
     pushLayer<SandboxLayer>();
     std::println("[Ω::SandboxApp] initialised — Ω ready");

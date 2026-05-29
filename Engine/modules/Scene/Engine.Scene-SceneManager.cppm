@@ -1,6 +1,7 @@
 export module Engine.Scene:SceneManager;
 
 import :World;
+import Engine.Core;   // Core::Input, Core::EventBus, Core::Application, Core::ActionEvent
 import std;
 
 /*═══════════════════════════════════════════════════════════════════════════════
@@ -62,6 +63,24 @@ namespace Engine::Scene
     {
     public:
 
+        SceneManager() = default;
+
+        ~SceneManager()
+        {
+            // Drop our ActionEvent subscription before we die (the
+            // EventBus outlives us -- it's destroyed after the layer
+            // stack -- so the stored pointer is valid here).
+            if (m_bus && m_actionSub)
+                m_bus->unsubscribe(m_actionSub);
+        }
+
+        // Non-movable: our ActionEvent handler captures `this`, so moving
+        // would dangle it. Held as a direct layer member, never moved.
+        SceneManager(SceneManager const&)            = delete;
+        SceneManager& operator=(SceneManager const&) = delete;
+        SceneManager(SceneManager&&)                 = delete;
+        SceneManager& operator=(SceneManager&&)      = delete;
+
         // Create a new, empty world with the given name and return a
         // reference so the caller can configure it (set onEnter/onExit
         // hooks, etc.). Does NOT make it active -- call switchTo().
@@ -97,6 +116,7 @@ namespace Engine::Scene
         // active world's systems. Call once from the layer's onUpdate.
         void onUpdate(float dt)
         {
+            ensureSubscribed();
             applyPendingSwitch();
 
             if (m_active)
@@ -105,6 +125,23 @@ namespace Engine::Scene
 
 
     private:
+
+        // Subscribe (once) to ActionEvent, routing each to the active
+        // world's onAction handler. Lazy because we need a live
+        // Application (its EventBus) -- valid by the first onUpdate.
+        void ensureSubscribed()
+        {
+            if (m_bus)
+                return;
+
+            m_bus       = &Core::Application::get().eventBus();
+            m_actionSub = m_bus->subscribe<Core::ActionEvent>(
+                [this](Core::ActionEvent const& event)
+                {
+                    if (m_active)
+                        m_active->dispatchAction(event);
+                });
+        }
 
         void applyPendingSwitch()
         {
@@ -132,6 +169,10 @@ namespace Engine::Scene
                 m_active = next;
                 m_active->enter();         // build/activate the incoming world
 
+                // Point the input device at THIS world's bindings, so
+                // only the active scene's actions fire (built in enter()).
+                Core::Input::setActionMap(&m_active->actions());
+
                 std::println("[Ω::SceneManager] active scene -> '{}'", m_active->name());
             }
 
@@ -143,6 +184,11 @@ namespace Engine::Scene
 
         World*                     m_active  { nullptr };   // non-owning
         std::optional<std::string> m_pending {};            // requested switch
+
+        // ActionEvent subscription (lazily created in ensureSubscribed).
+        // m_bus is captured once and stays valid until our destruction.
+        Core::EventBus* m_bus       { nullptr };
+        std::uint64_t   m_actionSub { 0 };
 
     }; // class SceneManager
 

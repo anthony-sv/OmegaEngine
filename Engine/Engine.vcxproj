@@ -151,6 +151,8 @@
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Default</CompileAs>
     </ClCompile>
+    <ClCompile Include="modules\Core\Engine.Core-Input.cppm" />
+    <ClCompile Include="src\Core\Engine.Core-Input.cpp" />
     <ClCompile Include="modules\Core\Engine.Core.cppm">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Default</CompileAs>

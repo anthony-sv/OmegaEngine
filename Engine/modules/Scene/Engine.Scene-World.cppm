@@ -75,6 +75,12 @@ namespace Engine::Scene
         // or tidy up on exit -- without subclassing World.
         using Hook = std::function<void(World&)>;
 
+        // An action hook: invoked when a bound input action fires while
+        // this world is active (the "doAction" equivalent, data-driven --
+        // no World subclass). Actions also flow as Core::ActionEvent on
+        // the EventBus for systems that prefer to subscribe directly.
+        using ActionHook = std::function<void(World&, Core::ActionEvent const&)>;
+
         World() = default;
         explicit World(std::string name) : m_name { std::move(name) } {}
 
@@ -111,6 +117,25 @@ namespace Engine::Scene
         // Invoked by the SceneManager (you normally don't call these).
         void enter() { if (m_onEnter) m_onEnter(*this); }
         void exit()  { if (m_onExit)  m_onExit(*this);  }
+
+
+        // -- Input actions ----------------------------------------------
+        // Each world owns its OWN bindings (key -> action name), set in
+        // its onEnter hook and changeable at runtime. The SceneManager
+        // points Core::Input at the ACTIVE world's map, so only this
+        // scene's bindings are live. setOnAction registers the handler;
+        // dispatchAction is called by the SceneManager when an ActionEvent
+        // arrives for the active world.
+
+        [[nodiscard]] Core::ActionMap&       actions()       { return m_actions; }
+        [[nodiscard]] Core::ActionMap const& actions() const { return m_actions; }
+
+        void setOnAction(ActionHook hook) { m_onAction = std::move(hook); }
+
+        void dispatchAction(Core::ActionEvent const& event)
+        {
+            if (m_onAction) m_onAction(*this, event);
+        }
 
 
         // -- Registry access --------------------------------------------
@@ -189,8 +214,10 @@ namespace Engine::Scene
         std::string                                       m_name;
         ECS::Registry                                     m_registry;
         std::vector<std::unique_ptr<Core::ISystem>>       m_systems;
+        Core::ActionMap                                   m_actions;
         Hook                                              m_onEnter;
         Hook                                              m_onExit;
+        ActionHook                                        m_onAction;
 
     }; // class World
 

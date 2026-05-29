@@ -48,11 +48,7 @@ private:
 
     // Owns every world and tracks the active one. The layer holds the
     // MANAGER, not a World -- so multiple scenes (and switching between
-    // them) are first-class.
+    // them) are first-class. Scene switching is driven by input actions
+    // (Space -> "NextScene"), bound per scene in onAttach.
     Engine::Scene::SceneManager m_sceneManager;
-
-    // Demo: auto-toggle between the two scenes on a timer (no input
-    // system yet). Proves deferred switching + enter/exit hooks live.
-    float m_switchTimer { 0.0f };
-    bool  m_showGrid    { true };
 }; // class SandboxLayer

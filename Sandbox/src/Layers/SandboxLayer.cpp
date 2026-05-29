@@ -132,19 +132,36 @@ void SandboxLayer::onAttach()
 
     {
         auto& grid = m_sceneManager.create("Grid");
-        grid.setOnEnter([](Engine::Scene::World& s)
+        grid.setOnEnter([this](Engine::Scene::World& w)
         {
-            std::println("[Ω::Sandbox] enter scene '{}' (building grid)", s.name());
-            buildGridScene(s);
+            std::println("[Ω::Sandbox] enter scene '{}' (building grid)", w.name());
+            buildGridScene(w);
+
+            // Per-scene binding: Space -> "NextScene". The handler fires
+            // (via the EventBus) when the action triggers while this scene
+            // is active, and switches to the other scene.
+            w.actions().bind(Engine::Core::Key::Space, "NextScene");
+            w.setOnAction([this](Engine::Scene::World&, Engine::Core::ActionEvent const& a)
+            {
+                if (a.name == "NextScene" && a.started)
+                    m_sceneManager.switchTo("Ring");
+            });
         });
         grid.setOnExit(onExit);
     }
     {
         auto& ring = m_sceneManager.create("Ring");
-        ring.setOnEnter([](Engine::Scene::World& s)
+        ring.setOnEnter([this](Engine::Scene::World& w)
         {
-            std::println("[Ω::Sandbox] enter scene '{}' (building ring)", s.name());
-            buildRingScene(s);
+            std::println("[Ω::Sandbox] enter scene '{}' (building ring)", w.name());
+            buildRingScene(w);
+
+            w.actions().bind(Engine::Core::Key::Space, "NextScene");
+            w.setOnAction([this](Engine::Scene::World&, Engine::Core::ActionEvent const& a)
+            {
+                if (a.name == "NextScene" && a.started)
+                    m_sceneManager.switchTo("Grid");
+            });
         });
         ring.setOnExit(onExit);
     }
@@ -152,7 +169,7 @@ void SandboxLayer::onAttach()
     // Pick the starting scene (applied on the first onUpdate).
     m_sceneManager.switchTo("Grid");
 
-    std::println("[Ω::SandboxLayer] {} scenes registered — starting on 'Grid'", m_sceneManager.sceneCount());
+    std::println("[Ω::SandboxLayer] {} scenes registered — press SPACE to switch (starting on 'Grid')", m_sceneManager.sceneCount());
 }
 
 void SandboxLayer::onDetach()
@@ -164,19 +181,11 @@ void SandboxLayer::onDetach()
 
 void SandboxLayer::onUpdate(float dt)
 {
-    // Demo driver: every 3 seconds, request the other scene. switchTo()
-    // is deferred -- the manager applies it at the top of onUpdate, so
-    // the actual exit()/enter() happen at a safe frame boundary.
-    m_switchTimer += dt;
-    if (m_switchTimer >= 3.0f)
-    {
-        m_switchTimer = 0.0f;
-        m_showGrid    = !m_showGrid;
-        m_sceneManager.switchTo(m_showGrid ? "Grid" : "Ring");
-    }
-
-    // Applies any pending switch, then ticks the active scene's systems
-    // (MovementSystem spins the quads).
+    // Scene switching is now driven by INPUT: pressing Space fires the
+    // "NextScene" action (bound per scene in onAttach), whose handler
+    // calls switchTo(). Here we just tick the manager -- it applies any
+    // pending switch at the frame boundary, then runs the active scene's
+    // systems (MovementSystem spins the quads).
     m_sceneManager.onUpdate(dt);
 }
 

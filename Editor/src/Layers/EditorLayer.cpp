@@ -184,11 +184,14 @@ void EditorLayer::onUpdate(float dt)
 
     if (!m_camera || !m_viewportHovered) return;
 
-    // ── Temporary camera controls ───────────────────────────────
-    // WASD = pan, Q/E = rotate, mouse wheel = zoom.
-    // Uses ImGui's input queries so we don't need a separate input
-    // system yet. These will be replaced by a proper CameraController
-    // once the editor input pipeline is in place.
+    // ── Camera controls ─────────────────────────────────────────
+    // WASD = pan, Q/E = rotate, mouse wheel = zoom. Now driven by the
+    // engine's Input service (GLFW under the hood) instead of borrowing
+    // ImGui's key queries. Gated on m_viewportHovered above so typing in
+    // other panels doesn't move the camera.
+
+    using Engine::Core::Key;
+    using Input = Engine::Core::Input;
 
     constexpr float panSpeed    = 2.0f;     // world units per second
     constexpr float rotateSpeed = 90.0f;    // degrees per second
@@ -204,13 +207,13 @@ void EditorLayer::onUpdate(float dt)
 
     float const step = panSpeed * dt / m_camera->zoom();    // zoom-compensated
 
-    if (ImGui::IsKeyDown(ImGuiKey_W))  { position.x -= s * step; position.y += c * step; }
-    if (ImGui::IsKeyDown(ImGuiKey_S))  { position.x += s * step; position.y -= c * step; }
-    if (ImGui::IsKeyDown(ImGuiKey_A))  { position.x -= c * step; position.y -= s * step; }
-    if (ImGui::IsKeyDown(ImGuiKey_D))  { position.x += c * step; position.y += s * step; }
+    if (Input::isKeyDown(Key::W))  { position.x -= s * step; position.y += c * step; }
+    if (Input::isKeyDown(Key::S))  { position.x += s * step; position.y -= c * step; }
+    if (Input::isKeyDown(Key::A))  { position.x -= c * step; position.y -= s * step; }
+    if (Input::isKeyDown(Key::D))  { position.x += c * step; position.y += s * step; }
 
-    if (ImGui::IsKeyDown(ImGuiKey_Q))  rotation += rotateSpeed * dt;
-    if (ImGui::IsKeyDown(ImGuiKey_E))  rotation -= rotateSpeed * dt;
+    if (Input::isKeyDown(Key::Q))  rotation += rotateSpeed * dt;
+    if (Input::isKeyDown(Key::E))  rotation -= rotateSpeed * dt;
 
     // Scroll wheel zoom is handled in onImGuiRender() because
     // ImGui::GetIO().MouseWheel isn't populated until NewFrame(),

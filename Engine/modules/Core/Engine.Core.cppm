@@ -6,6 +6,7 @@ export import :EventBus;
 export import :System;
 export import :SystemManager;
 export import :Window;
+export import :Input;
 export import :Layer;
 export import :LayerStack;
 export import :Error;

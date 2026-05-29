@@ -1,4 +1,4 @@
-﻿module EditorApp;
+module EditorApp;
 
 import Engine.Core;
 import EditorLayer;

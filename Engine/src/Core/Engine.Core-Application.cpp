@@ -7,6 +7,7 @@ module Engine.Core:Application;
 import :Application;
 import :Error;
 import :Window;
+import :Input;
 import :GameLoop;
 import std;
 
@@ -41,6 +42,10 @@ namespace Engine::Core {
         using Duration = std::chrono::duration<float>;
 
         // Ω::Init ─────────────────────────────────────────────────────
+        // Bring the input device online (sibling of the window) before
+        // user init, so layers/systems can query it from frame one.
+        Input::init(*m_window, m_eventBus);
+
         onInit();
         m_systemManager.initAll();
 
@@ -66,7 +71,11 @@ namespace Engine::Core {
             m_gameLoop.addFrameTime(frameTime);
 
             // Ω::Input ────────────────────────────────────────────────
+            // pollEvents() pumps the OS queue (updating GLFW's internal
+            // key/mouse state); Input::update() then snapshots + diffs it
+            // once per frame, firing key/mouse/action events on the bus.
             m_window->pollEvents();
+            Input::update();
 
             // Ω::Fixed-timestep update ────────────────────────────────
             while(m_gameLoop.consumeTick()) {
@@ -88,6 +97,7 @@ namespace Engine::Core {
 
         // Ω::Shutdown ─────────────────────────────────────────────────
         onShutdown();
+        Input::shutdown();
         std::println("[Ω::Application] exited main loop");
 
         return 0;
