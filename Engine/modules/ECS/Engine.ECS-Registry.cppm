@@ -233,6 +233,26 @@ namespace Engine::ECS
             return m_registry.view<Components...>();
         }
 
+        // Visit EVERY alive entity (regardless of components), as an
+        // Entity handle. Used by tools like the editor Hierarchy that
+        // need the full entity list, not a component query.
+        //
+        // Non-template on purpose: taking std::function means the EnTT
+        // entity-storage iteration is compiled HERE (inside Engine.ECS,
+        // which imports the EnTT header unit) rather than at the call
+        // site -- so callers never need EnTT visible.
+        void eachEntity(std::function<void(Entity)> const& func)
+        {
+            // Non-const storage<Type>() returns a reference (the const
+            // overload returns a pointer). Iterate it; valid() filters
+            // any released slots so only alive entities reach func.
+            auto& storage = m_registry.storage<entt::entity>();
+
+            for (auto const e : storage)
+                if (m_registry.valid(e))
+                    func(Entity { e, &m_registry });
+        }
+
 
         // -- Statistics -------------------------------------------------
 

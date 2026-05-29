@@ -40,4 +40,9 @@ private:
     std::optional<Engine::Renderer::SubTexture2D> m_spriteC;
 
     Engine::Scene::SceneManager m_sceneManager;
+
+    // The entity currently selected in the Hierarchy panel; the
+    // Inspector edits its components. Default-null; guarded with
+    // valid() since a scene rebuild invalidates old handles.
+    Engine::ECS::Entity m_selected;
 }; // class EditorLayer

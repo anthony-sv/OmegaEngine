@@ -22,6 +22,20 @@ import Engine.Core;
 namespace Engine::Renderer
 {
 
+    // How the texture is sampled when scaled away from its native size.
+    //   Nearest — pick the closest texel. Crisp, no blending. The right
+    //             choice for PIXEL ART / sprite sheets: linear filtering
+    //             on a transparent atlas blends edge texels with their
+    //             (often black, transparent) neighbours, giving an ugly
+    //             dark halo and bleeding between atlas cells.
+    //   Linear  — bilinear blend. Smooth for photos / continuous-tone
+    //             textures displayed at non-native sizes.
+    export enum class TextureFilter
+    {
+        Nearest,
+        Linear,
+	}; // enum class TextureFilter
+
     // ─────────────────────────────────────────────────────────────────────
     // Texture2D — RAII wrapper around an OpenGL 2D texture.
     //
@@ -42,13 +56,19 @@ namespace Engine::Renderer
     {
     public:
         // Load from an image file. Forces RGBA (4 channels).
-        [[nodiscard]] static Core::Result<Texture2D> create(std::filesystem::path const& path);
+        // Defaults to Nearest filtering (best for sprite sheets); pass
+        // Linear for photos / continuous-tone textures.
+        [[nodiscard]] static Core::Result<Texture2D> create(
+            std::filesystem::path const& path,
+            TextureFilter filter = TextureFilter::Nearest
+        );
 
         // Create from raw RGBA pixel data (4 bytes per pixel).
         // Cannot fail — used for programmatic textures (white pixel, etc.).
         [[nodiscard]] static Texture2D create(
             std::uint32_t width, std::uint32_t height,
-            void const* rgbaData
+            void const* rgbaData,
+            TextureFilter filter = TextureFilter::Nearest
         );
 
         // Bind to a texture unit (0–31). Matches the sampler uniform slot.
@@ -70,7 +90,8 @@ namespace Engine::Renderer
         // Shared GL setup: allocate storage, upload pixels, set filtering.
         void initStorage(
             std::uint32_t width, std::uint32_t height,
-            void const* rgbaData
+            void const* rgbaData,
+            TextureFilter filter
         );
 
         std::uint32_t m_id     { 0 };

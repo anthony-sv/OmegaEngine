@@ -23,7 +23,8 @@ namespace Engine::Renderer
 
     void Texture2D::initStorage(
         std::uint32_t width, std::uint32_t height,
-        void const* rgbaData
+        void const* rgbaData,
+        TextureFilter filter
     )
     {
         m_width  = width;
@@ -44,19 +45,24 @@ namespace Engine::Renderer
             rgbaData
         );
 
-        // Bilinear filtering: smooth when displayed at a different
-        // resolution than the texture's native size.
-        glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // Filtering: Nearest (crisp, no edge blending) by default for
+        // sprite atlases; Linear (bilinear) for smooth scaling of photos.
+        // Linear on a transparent atlas is what causes black halos and
+        // bleeding between cells -- hence Nearest is the default.
+        GLint const glFilter = (filter == TextureFilter::Linear) ? GL_LINEAR : GL_NEAREST;
+        glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, glFilter);
+        glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, glFilter);
 
-        // Repeat wrapping: UVs outside [0,1] tile the texture.
+        // Repeat wrapping: UVs outside [0,1] tile the texture (needed for
+        // tilingFactor > 1). Atlas UVs stay within a cell, so this is
+        // harmless there.
         glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
 
     // Ω::Factory (file) ──────────────────────────────────────────────────
 
-    Core::Result<Texture2D> Texture2D::create(std::filesystem::path const& path)
+    Core::Result<Texture2D> Texture2D::create(std::filesystem::path const& path, TextureFilter filter)
     {
         // OpenGL textures have origin at bottom-left; image files store
         // pixels top-to-bottom. Flip so UV (0,0) = bottom-left corner.
@@ -87,7 +93,8 @@ namespace Engine::Renderer
         tex.initStorage(
             static_cast<std::uint32_t>(width),
             static_cast<std::uint32_t>(height),
-            pixels
+            pixels,
+            filter
         );
 
         stbi_image_free(pixels);
@@ -105,13 +112,14 @@ namespace Engine::Renderer
     // Ω::Factory (raw data) ──────────────────────────────────────────────
 
     Texture2D Texture2D::create(
-        std::uint32_t width, 
+        std::uint32_t width,
         std::uint32_t height,
-        void const* rgbaData
+        void const* rgbaData,
+        TextureFilter filter
     )
     {
         Texture2D tex;
-        tex.initStorage(width, height, rgbaData);
+        tex.initStorage(width, height, rgbaData, filter);
         return tex;
     }
 

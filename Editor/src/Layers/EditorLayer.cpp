@@ -14,6 +14,73 @@ import Engine.ECS;
 import Engine.Scene;
 import Engine.Systems;
 
+namespace
+{
+    // Draw editable ImGui fields for each component the entity has.
+    // There is no C++ reflection, so this is the standard hand-written
+    // dispatch: check has<T>(), then draw fields bound to get<T>().
+    // get<T>() returns a reference, so the widgets edit the component
+    // in place -- changes are live in the viewport next frame.
+    void drawInspector(Engine::ECS::Entity entity)
+    {
+        using namespace Engine::ECS;
+
+        if (entity.has<NameComponent>())
+        {
+            auto& name = entity.get<NameComponent>();
+            char buf[128] = {};
+            name.name.copy(buf, sizeof(buf) - 1);
+            if (ImGui::InputText("Name", buf, sizeof(buf)))
+                name.name = buf;
+            ImGui::Separator();
+        }
+
+        if (entity.has<Transform>())
+        {
+            auto& t = entity.get<Transform>();
+            if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::DragFloat2("Position", &t.position.x, 0.05f);
+                ImGui::DragFloat ("Rotation", &t.rotation,   1.0f);
+                ImGui::DragFloat2("Scale",    &t.scale.x,    0.05f, 0.01f, 100.0f);
+            }
+        }
+
+        if (entity.has<SpriteRenderer>())
+        {
+            auto& s = entity.get<SpriteRenderer>();
+            if (ImGui::CollapsingHeader("Sprite Renderer", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::ColorEdit4("Color",  &s.color.x);
+                ImGui::DragFloat ("Tiling", &s.tilingFactor, 0.1f, 0.0f, 100.0f);
+                ImGui::TextDisabled(s.texture ? "Texture: set" : "Texture: none");
+            }
+        }
+
+        if (entity.has<Velocity2D>())
+        {
+            auto& v = entity.get<Velocity2D>();
+            if (ImGui::CollapsingHeader("Velocity2D", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::DragFloat2("Linear",  &v.linear.x, 0.05f);
+                ImGui::DragFloat ("Angular", &v.angular,  1.0f);
+            }
+        }
+
+        if (entity.has<SpriteAnimation>())
+        {
+            auto& a = entity.get<SpriteAnimation>();
+            if (ImGui::CollapsingHeader("Sprite Animation", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Frame %u / %zu", a.currentFrame + 1u, a.frames.size());
+                ImGui::DragFloat("Frame Duration", &a.frameDuration, 0.01f, 0.0f, 10.0f);
+                ImGui::Checkbox("Looping", &a.looping);
+                ImGui::Checkbox("Playing", &a.playing);
+            }
+        }
+    }
+}
+
 EditorLayer::EditorLayer()
     : ILayer { "Ω::EditorLayer" }
 {}
@@ -516,17 +583,59 @@ void EditorLayer::onImGuiRender()
         ImGui::End();
     }
 
-    if(m_showInspector)
-    {
-        ImGui::Begin("Inspector", &m_showInspector);
-        ImGui::TextDisabled("No entity selected");
-        ImGui::End();
-    }
-
     if(m_showHierarchy)
     {
         ImGui::Begin("Scene Hierarchy", &m_showHierarchy);
-        ImGui::Text("(empty scene)");
+
+        if (auto* world = m_sceneManager.active())
+        {
+            ImGui::TextDisabled("%s", world->name().c_str());
+            ImGui::Separator();
+
+            // List every entity in the active world. PushID(index) keeps
+            // ImGui's selectable IDs unique even when names repeat.
+            int index = 0;
+            world->registry().eachEntity([&](Engine::ECS::Entity e)
+            {
+                ImGui::PushID(index++);
+
+                std::string const label = e.has<Engine::ECS::NameComponent>()
+                    ? e.get<Engine::ECS::NameComponent>().name
+                    : std::string { "Entity" };
+
+                if (ImGui::Selectable(label.c_str(), e == m_selected))
+                    m_selected = e;
+
+                ImGui::PopID();
+            });
+
+            // Click empty space in the panel to deselect.
+            if (ImGui::IsWindowHovered()
+                && ImGui::IsMouseClicked(ImGuiMouseButton_Left)
+                && !ImGui::IsAnyItemHovered())
+            {
+                m_selected = {};
+            }
+        }
+        else
+        {
+            ImGui::TextDisabled("(no active scene)");
+        }
+
+        ImGui::End();
+    }
+
+    if(m_showInspector)
+    {
+        ImGui::Begin("Inspector", &m_showInspector);
+
+        // Guard with valid(): a scene rebuild destroys entities and
+        // leaves m_selected dangling -- valid() catches that.
+        if (m_selected.valid())
+            drawInspector(m_selected);
+        else
+            ImGui::TextDisabled("No entity selected");
+
         ImGui::End();
     }
 
