@@ -10,6 +10,8 @@ module EditorLayer;
 
 import Engine.Core;
 import Engine.Renderer;
+import Engine.ECS;
+import Engine.Systems;
 
 EditorLayer::EditorLayer()
     : ILayer { "Ω::EditorLayer" }
@@ -103,6 +105,47 @@ void EditorLayer::onAttach()
     // size=2.0 means the view spans [-2,+2] vertically — enough
     // to see the test quads spread around the origin.
     m_camera.emplace(16.0f / 9.0f, 2.0f);
+
+    // Create a few entities, each with a Transform (where/how big)
+    // and a SpriteRenderer (what color). onRender() iterates a view
+    // over <Transform, SpriteRenderer> and draws each one.
+
+    // create(name) auto-adds a NameComponent, so these entities are
+    // already identifiable (useful once the Hierarchy panel reads
+    // the registry). add<T>(...) forwards to the component's ctor.
+    {
+        auto e1 = m_registry.create("ECS Quad — magenta");
+        e1.add<Engine::ECS::Transform>(Engine::ECS::Transform{
+            .position = { 2.0f,  0.6f },
+            .rotation = 0.0f,
+            .scale    = { 0.4f, 0.4f }
+        });
+        e1.add<Engine::ECS::SpriteRenderer>(Engine::ECS::SpriteRenderer{
+            .color = { 0.9f, 0.2f, 0.9f, 1.0f }
+        });
+
+        auto e2 = m_registry.create("ECS Quad — cyan");
+        e2.add<Engine::ECS::Transform>(Engine::ECS::Transform{
+            .position = { 2.0f, -0.1f },
+            .rotation = 0.0f,
+            .scale    = { 0.4f, 0.4f }
+        });
+        e2.add<Engine::ECS::SpriteRenderer>(Engine::ECS::SpriteRenderer{
+            .color = { 0.2f, 0.9f, 0.9f, 1.0f }
+        });
+
+        auto e3 = m_registry.create("ECS Quad — orange (rotated)");
+        e3.add<Engine::ECS::Transform>(Engine::ECS::Transform{
+            .position = { 2.0f, -0.8f },
+            .rotation = 25.0f,
+            .scale    = { 0.4f, 0.4f }
+        });
+        e3.add<Engine::ECS::SpriteRenderer>(Engine::ECS::SpriteRenderer{
+            .color = { 1.0f, 0.6f, 0.1f, 1.0f }
+        });
+
+        std::println("[Ω::EditorLayer] ECS scene: {} entities created", m_registry.entityCount());
+    }
 }
 
 void EditorLayer::onDetach()
@@ -267,15 +310,20 @@ void EditorLayer::onRender(float /*alpha*/)
         );
     }
 
-    // ── End the batch ───────────────────────────────────────────
-    // This is where the actual GPU work happens:
-    //   1. Upload the staged vertices to the dynamic VBO.
-    //   2. Bind all textures that were used this batch.
-    //   3. Issue ONE glDrawElements call for all quads above.
-    // Note: wall.jpg and the sprite sheet are two different textures,
-    // each in their own slot. But all 3 sprite sub-textures share
-    // the same atlas slot — that's the atlas advantage.
+    // ── End the manual demo batch ───────────────────────────────
+    // Flushes the hard-coded quads above (wall, colored, sprites) in
+    // a single draw call.
     Engine::Renderer::Renderer2D::endBatch();
+
+    // ── ECS render pass ────────────────────────────────────
+    // Hand the scene to the RenderSystem. It opens its OWN batch,
+    // iterates every entity that has Transform + SpriteRenderer,
+    // draws each one, and flushes. This is the engine's first
+    // data-driven render path: the EditorLayer no longer touches the
+    // view or the iterator — it just owns the registry and the camera
+    // and lets the system do the work. The FBO is still bound here, so
+    // these quads land in the same off-screen target as the demo batch.
+    Engine::Systems::RenderSystem::render(m_registry, *m_camera);
 
     m_framebuffer->unbind();
 }
