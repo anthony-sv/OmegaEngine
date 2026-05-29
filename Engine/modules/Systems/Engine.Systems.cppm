@@ -10,9 +10,10 @@ export module Engine.Systems;
 //
 // As the engine grows this module gains partitions:
 //   :RenderSystem     -- draws sprites           (render phase)  [done]
-//   :MovementSystem   -- integrates velocity     (update phase)  [later]
-//   :AnimationSystem  -- advances sprite frames  (update phase)  [later]
+//   :MovementSystem   -- integrates velocity     (update phase)  [done]
+//   :AnimationSystem  -- advances sprite frames  (update phase)  [done]
 //   :PhysicsSystem    -- collisions / dynamics   (fixed step)    [later]
 
 export import :RenderSystem;
 export import :MovementSystem;
+export import :AnimationSystem;

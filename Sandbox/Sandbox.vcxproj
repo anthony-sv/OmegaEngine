@@ -151,6 +151,9 @@
     <None Include="assets\shaders\batch_quad\fragment.glsl" />
     <None Include="assets\shaders\batch_quad\vertex.glsl" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\textures\Sheet.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

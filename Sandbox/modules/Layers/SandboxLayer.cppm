@@ -46,6 +46,11 @@ private:
     // not at layer construction time.
     std::optional<Engine::Renderer::Camera2D> m_camera;
 
+    // Sprite sheet for the animated demo entity. Declared BEFORE the
+    // SceneManager so it outlives the worlds whose SpriteRenderers point
+    // into it (non-owning Texture2D*).
+    std::optional<Engine::Renderer::Texture2D> m_sheet;
+
     // Owns every world and tracks the active one. The layer holds the
     // MANAGER, not a World -- so multiple scenes (and switching between
     // them) are first-class. Scene switching is driven by input actions

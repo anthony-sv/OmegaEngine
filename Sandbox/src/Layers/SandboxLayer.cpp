@@ -120,6 +120,13 @@ void SandboxLayer::onAttach()
 
     m_camera.emplace(WindowWidth / WindowHeight, 3.0f);
 
+    // Sprite sheet for the animated demo entity (optional -- the scenes
+    // still work without it). 128x64, two 64x64 character cells.
+    if (auto sheet = Engine::Renderer::Texture2D::create("assets/textures/Sheet.png"))
+        m_sheet.emplace(std::move(*sheet));
+    else
+        std::println(std::cerr, "[Ω::SandboxLayer] sheet load failed: {}", sheet.error().message);
+
     // ── Register the scenes ─────────────────────────────────────
     // Each scene gets its content via an onEnter hook (build) and is
     // wiped via an onExit hook (teardown). A single shared onExit works
@@ -136,6 +143,33 @@ void SandboxLayer::onAttach()
         {
             std::println("[Ω::Sandbox] enter scene '{}' (building grid)", w.name());
             buildGridScene(w);
+
+            // ── Animated sprite ──────────────────────
+            // One entity that cycles between the sheet's two 64x64 cells.
+            // The AnimationSystem advances SpriteAnimation -> writes the
+            // SpriteRenderer's UVs; the RenderSystem then draws it.
+            if (m_sheet)
+            {
+                namespace R = Engine::Renderer;
+                auto const f0 = R::SubTexture2D::createFromGrid(*m_sheet, { 0.0f, 0.0f }, { 64.0f, 64.0f });
+                auto const f1 = R::SubTexture2D::createFromGrid(*m_sheet, { 1.0f, 0.0f }, { 64.0f, 64.0f });
+
+                auto hero = w.createEntity("Animated Hero");
+                hero.add<Engine::ECS::Transform>(Engine::ECS::Transform{
+                    .position = { 0.0f, 2.0f }, .rotation = 0.0f, .scale = { 1.0f, 1.0f } });
+                hero.add<Engine::ECS::SpriteRenderer>(Engine::ECS::SpriteRenderer{
+                    .texture = &*m_sheet, .uvMin = f0.uvMin(), .uvMax = f0.uvMax() });
+                hero.add<Engine::ECS::SpriteAnimation>(Engine::ECS::SpriteAnimation{
+                    .frames = {
+                        { .uvMin = f0.uvMin(), .uvMax = f0.uvMax() },
+                        { .uvMin = f1.uvMin(), .uvMax = f1.uvMax() },
+                    },
+                    .frameDuration = 0.5f,
+                    .looping       = true,
+                    .playing       = true });
+
+                w.addSystem<Engine::Systems::AnimationSystem>();
+            }
 
             // Per-scene binding: Space -> "NextScene". The handler fires
             // (via the EventBus) when the action triggers while this scene

@@ -118,7 +118,7 @@ void EditorLayer::onAttach()
     // already identifiable (useful once the Hierarchy panel reads the
     // active world's registry).
     auto& world = m_sceneManager.create("Editor");
-    world.setOnEnter([](Engine::Scene::World& w)
+    world.setOnEnter([this](Engine::Scene::World& w)
     {
         auto spin = [](float deg) {
             return Engine::ECS::Velocity2D{ .linear = { 0.0f, 0.0f }, .angular = deg };
@@ -146,6 +146,32 @@ void EditorLayer::onAttach()
         e3.add<Engine::ECS::Velocity2D>(spin(90.0f));
 
         w.addSystem<Engine::Systems::MovementSystem>();
+
+        // ── Animated sprite ─────────────────────────────────────────
+        // Reuse the already-loaded sprite sheet + its two cell sub-
+        // textures (m_spriteA/B) as a 2-frame animation. The
+        // AnimationSystem advances SpriteAnimation -> writes the
+        // SpriteRenderer UVs; the RenderSystem draws it in the viewport.
+        if (m_spriteSheet && m_spriteA && m_spriteB)
+        {
+            auto hero = w.createEntity("Animated Hero");
+            hero.add<Engine::ECS::Transform>(Engine::ECS::Transform{
+                .position = { 0.0f, 1.2f }, .rotation = 0.0f, .scale = { 0.7f, 0.7f } });
+            hero.add<Engine::ECS::SpriteRenderer>(Engine::ECS::SpriteRenderer{
+                .texture = &*m_spriteSheet,
+                .uvMin   = m_spriteA->uvMin(),
+                .uvMax   = m_spriteA->uvMax() });
+            hero.add<Engine::ECS::SpriteAnimation>(Engine::ECS::SpriteAnimation{
+                .frames = {
+                    { .uvMin = m_spriteA->uvMin(), .uvMax = m_spriteA->uvMax() },
+                    { .uvMin = m_spriteB->uvMin(), .uvMax = m_spriteB->uvMax() },
+                },
+                .frameDuration = 0.5f,
+                .looping       = true,
+                .playing       = true });
+
+            w.addSystem<Engine::Systems::AnimationSystem>();
+        }
 
         std::println("[Ω::EditorLayer] world '{}' built — {} entities", w.name(), w.registry().entityCount());
     });

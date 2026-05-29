@@ -193,6 +193,7 @@
     <ClCompile Include="modules\Systems\Engine.Systems.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-RenderSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-MovementSystem.cppm" />
+    <ClCompile Include="modules\Systems\Engine.Systems-AnimationSystem.cppm" />
   </ItemGroup>
   <!-- EnTT consumed as a header unit. Building this shim with
        CompileAsHeaderUnit produces the .ifc that Engine.ECS-Registry.EnTT
