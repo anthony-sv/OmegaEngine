@@ -8,6 +8,7 @@ import :SystemManager;
 import :LayerStack;
 import :Layer;
 import :System;
+import :AssetManager;
 import std;
 
 /*═══════════════════════════════════════════════════════════════════════════════
@@ -43,6 +44,7 @@ namespace Engine::Core {
 		// Ω::Subsystem access ─────────────────────────────────────────
 		[[nodiscard]] Window&			window()			{ return *m_window; }
 		[[nodiscard]] EventBus&         eventBus()          { return m_eventBus; }
+		[[nodiscard]] AssetManager&     assets()            { return m_assets; }
 		[[nodiscard]] SystemManager&	systemManager()		{ return m_systemManager; }
 		[[nodiscard]] LayerStack&		layerStack()		{ return m_layerStack; }
 		[[nodiscard]] GameLoop&		    gameLoop()		    { return m_gameLoop; }
@@ -83,6 +85,7 @@ namespace Engine::Core {
 		GameLoop			  m_gameLoop;
 		SystemManager         m_systemManager;
 		LayerStack            m_layerStack;
+		AssetManager          m_assets;
 
 		bool m_running { true };
 

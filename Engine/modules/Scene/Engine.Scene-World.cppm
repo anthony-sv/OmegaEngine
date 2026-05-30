@@ -199,6 +199,14 @@ namespace Engine::Scene
             m_registry.clear();
         }
 
+        // Destroy all ENTITIES but keep the systems. Used when loading a
+        // scene's entity data into a world whose systems are already set
+        // up (serialization saves data, not systems).
+        void clearEntities()
+        {
+            m_registry.clear();
+        }
+
 
     private:
 

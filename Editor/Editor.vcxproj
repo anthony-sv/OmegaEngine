@@ -155,6 +155,7 @@
     <None Include="assets\shaders\test_quad\fragment.glsl" />
     <None Include="assets\shaders\test_quad\vertex.glsl" />
     <None Include="omega_editor_layout.ini" />
+    <None Include="scenes\Editor.json" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Layers\TitlebarState.hpp" />

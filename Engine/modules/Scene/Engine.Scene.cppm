@@ -11,3 +11,4 @@ export module Engine.Scene;
 
 export import :World;
 export import :SceneManager;
+export import :Serializer;

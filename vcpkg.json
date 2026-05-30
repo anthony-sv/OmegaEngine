@@ -20,6 +20,7 @@
     },
     "glm",
     "stb",
-    "entt"
+    "entt",
+    "nlohmann-json"
   ]
 }

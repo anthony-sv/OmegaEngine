@@ -1,0 +1,181 @@
+{
+  "entities": [
+    {
+      "Name": "ECS Quad — magenta",
+      "SpriteRenderer": {
+        "color": [
+          0.8999999761581421,
+          0.20000000298023224,
+          0.8999999761581421,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          2.0,
+          0.6000000238418579
+        ],
+        "rotation": 4652.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "Velocity2D": {
+        "angular": 60.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "ECS Quad — cyan",
+      "SpriteRenderer": {
+        "color": [
+          0.20000000298023224,
+          0.9019607901573181,
+          0.9019607901573181,
+          0.23529411852359772
+        ],
+        "texturePath": "",
+        "tilingFactor": 0.5,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          2.0,
+          -0.10000000149011612
+        ],
+        "rotation": -4652.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "Velocity2D": {
+        "angular": -60.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "ECS Quad — orange",
+      "SpriteRenderer": {
+        "color": [
+          1.0,
+          0.6000000238418579,
+          0.10000000149011612,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          2.0,
+          -0.800000011920929
+        ],
+        "rotation": 7003.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "Velocity2D": {
+        "angular": 90.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "Animated Hero",
+      "SpriteAnimation": {
+        "frameDuration": 0.5,
+        "frames": [
+          {
+            "uvMax": [
+              0.5,
+              1.0
+            ],
+            "uvMin": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "uvMax": [
+              1.0,
+              1.0
+            ],
+            "uvMin": [
+              0.5,
+              0.0
+            ]
+          }
+        ],
+        "looping": true,
+        "playing": true
+      },
+      "SpriteRenderer": {
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texturePath": "assets/textures/Sheet.png",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.5,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          1.2000000476837158
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.699999988079071,
+          0.699999988079071
+        ]
+      }
+    }
+  ],
+  "name": "Editor"
+}

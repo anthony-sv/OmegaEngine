@@ -1,0 +1,317 @@
+{
+  "entities": [
+    {
+      "Name": "Node 7",
+      "SpriteRenderer": {
+        "color": [
+          0.8535535335540771,
+          0.6294093132019043,
+          0.017037153244018555,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          1.131371259689331,
+          -1.1313704252243042
+        ],
+        "rotation": -100.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "Velocity2D": {
+        "angular": -120.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "Node 6",
+      "SpriteRenderer": {
+        "color": [
+          0.5,
+          0.9330127239227295,
+          0.06698727607727051,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          1.9079809732147623e-08,
+          -1.600000023841858
+        ],
+        "rotation": 100.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "Velocity2D": {
+        "angular": 120.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "Node 5",
+      "SpriteRenderer": {
+        "color": [
+          0.14644667506217957,
+          0.982962965965271,
+          0.37059009075164795,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          -1.1313706636428833,
+          -1.131371021270752
+        ],
+        "rotation": -100.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "Velocity2D": {
+        "angular": -120.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "Node 4",
+      "SpriteRenderer": {
+        "color": [
+          0.0,
+          0.7499999403953552,
+          0.7499998211860657,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          -1.600000023841858,
+          -1.3987644820190326e-07
+        ],
+        "rotation": 100.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "Velocity2D": {
+        "angular": 120.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "Node 3",
+      "SpriteRenderer": {
+        "color": [
+          0.1464466154575348,
+          0.3705905079841614,
+          0.9829629063606262,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          -1.1313709020614624,
+          1.1313709020614624
+        ],
+        "rotation": -100.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "Velocity2D": {
+        "angular": -120.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "Node 2",
+      "SpriteRenderer": {
+        "color": [
+          0.4999999701976776,
+          0.06698736548423767,
+          0.9330127835273743,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          -6.993822410095163e-08,
+          1.600000023841858
+        ],
+        "rotation": 100.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "Velocity2D": {
+        "angular": 120.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "Node 1",
+      "SpriteRenderer": {
+        "color": [
+          0.8535534143447876,
+          0.01703706383705139,
+          0.6294094920158386,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          1.1313709020614624,
+          1.1313709020614624
+        ],
+        "rotation": -100.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "Velocity2D": {
+        "angular": -120.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "Name": "Node 0",
+      "SpriteRenderer": {
+        "color": [
+          1.0,
+          0.2499999701976776,
+          0.2500000596046448,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          1.600000023841858,
+          0.0
+        ],
+        "rotation": 100.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      },
+      "Velocity2D": {
+        "angular": 120.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
+    }
+  ],
+  "name": "Ring"
+}

@@ -17,6 +17,11 @@ public:
     void onImGuiRender()         override;
 
 private:
+    // Scene save/load (File menu + Ctrl+S / Ctrl+O). Round-trips the
+    // active world to "<world>.json" via the SceneSerializer.
+    void saveScene();
+    void loadScene();
+
     bool m_showViewport  { true };
     bool m_showInspector { true };
     bool m_showHierarchy { true };
@@ -24,20 +29,8 @@ private:
 
     bool m_viewportHovered { false };
 
-    // Ω::Renderer — resources that EditorLayer owns
-    std::optional<Engine::Renderer::Texture2D>    m_texture;
     std::optional<Engine::Renderer::Camera2D>     m_camera;
-
-    // Ω::Renderer Phase 2 — off-screen render target for the Viewport panel
     std::optional<Engine::Renderer::Framebuffer> m_framebuffer;
-
-    // Ω::Renderer Phase 8 — sprite sheet atlas and sub-textures
-    // The atlas (m_spriteSheet) must outlive every SubTexture2D that
-    // references it, because SubTexture2D holds a non-owning pointer.
-    std::optional<Engine::Renderer::Texture2D>    m_spriteSheet;
-    std::optional<Engine::Renderer::SubTexture2D> m_spriteA;
-    std::optional<Engine::Renderer::SubTexture2D> m_spriteB;
-    std::optional<Engine::Renderer::SubTexture2D> m_spriteC;
 
     Engine::Scene::SceneManager m_sceneManager;
 

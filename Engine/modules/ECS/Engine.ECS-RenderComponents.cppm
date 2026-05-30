@@ -51,8 +51,15 @@ namespace Engine::ECS
         glm::vec4 color { 1.0f, 1.0f, 1.0f, 1.0f };
 
         // Texture to sample. nullptr = color-only quad (white pixel).
-        // Non-owning: the Texture2D must outlive this component.
+        // Non-owning: the Texture2D must outlive this component (it's
+        // owned by the AssetManager). This RUNTIME pointer is not
+        // serializable -- texturePath below is the saveable reference.
         Renderer::Texture2D const* texture { nullptr };
+
+        // Serializable asset id: the texture's path. On load, the scene
+        // serializer resolves it back to the pointer via the AssetManager
+        // (assets.load<Texture2D>(texturePath)). Empty = color-only quad.
+        std::string texturePath {};
 
         // UV sub-region within the texture. Defaults to the full image.
         // For sprite-sheet sprites, populate these from SubTexture2D.

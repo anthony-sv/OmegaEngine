@@ -1,4 +1,4 @@
-﻿module;
+module;
 
 #include "glm/glm.hpp"
 
@@ -85,3 +85,22 @@ namespace Engine::Renderer
     }; // class Shader
 
 } // namespace Renderer
+
+
+// AssetManager loader specialization: a Shader loads from TWO files
+// (vertex + fragment), so it can't use the default T::create(path).
+// With this, assets.loadKeyed<Shader>("name", vertPath, fragPath) works.
+namespace Engine::Core
+{
+    template <>
+    struct AssetLoader<Engine::Renderer::Shader>
+    {
+        [[nodiscard]] static Result<Engine::Renderer::Shader> load(
+            std::filesystem::path const& vertexPath,
+            std::filesystem::path const& fragmentPath
+        )
+        {
+            return Engine::Renderer::Shader::fromFiles(vertexPath, fragmentPath);
+        }
+    };
+} // namespace Core

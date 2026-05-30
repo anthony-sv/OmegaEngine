@@ -150,6 +150,8 @@
   <ItemGroup>
     <None Include="assets\shaders\batch_quad\fragment.glsl" />
     <None Include="assets\shaders\batch_quad\vertex.glsl" />
+    <None Include="scenes\Grid.json" />
+    <None Include="scenes\Ring.json" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\textures\Sheet.png" />

@@ -153,6 +153,7 @@
     </ClCompile>
     <ClCompile Include="modules\Core\Engine.Core-Input.cppm" />
     <ClCompile Include="src\Core\Engine.Core-Input.cpp" />
+    <ClCompile Include="modules\Core\Engine.Core-AssetManager.cppm" />
     <ClCompile Include="modules\Core\Engine.Core.cppm">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Default</CompileAs>
@@ -190,6 +191,8 @@
     <ClCompile Include="modules\Scene\Engine.Scene.cppm" />
     <ClCompile Include="modules\Scene\Engine.Scene-World.cppm" />
     <ClCompile Include="modules\Scene\Engine.Scene-SceneManager.cppm" />
+    <ClCompile Include="modules\Scene\Engine.Scene-Serializer.cppm" />
+    <ClCompile Include="src\Scene\Engine.Scene-Serializer.cpp" />
     <ClCompile Include="modules\Systems\Engine.Systems.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-RenderSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-MovementSystem.cppm" />

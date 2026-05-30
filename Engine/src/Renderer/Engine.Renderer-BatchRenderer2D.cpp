@@ -66,7 +66,7 @@ namespace Engine::Renderer
     // because RAII types (Shader, VertexBuffer, etc.) have no default
     // constructors — we construct them later when the GL context is ready.
 
-    static std::optional<Shader>       s_batchShader;     // the batch vertex+fragment program
+    static Shader*                     s_batchShader { nullptr };  // owned by the AssetManager (non-owning here)
     static std::optional<VertexBuffer> s_vertexBuffer;    // dynamic VBO (re-filled every frame)
     static std::optional<IndexBuffer>  s_indexBuffer;     // static IBO (pre-computed quad pattern)
     static std::optional<VertexArray>  s_vertexArray;     // VAO wiring the VBO + IBO together
@@ -307,14 +307,21 @@ namespace Engine::Renderer
         s_vertexStorage.resize(MaxVertices);
 
         // ── 1. Shader ───────────────────────────────────────────
-        auto shaderResult = Shader::fromFiles(
+        // Loaded through the app's AssetManager (owns + dedups). Two
+        // files, so loadKeyed with an explicit key. Returns nullptr on
+        // failure (the manager logs the specifics).
+        s_batchShader = Core::Application::get().assets().loadKeyed<Shader>(
+            "batch_quad",
             "assets/shaders/batch_quad/vertex.glsl",
             "assets/shaders/batch_quad/fragment.glsl"
         );
-        if (!shaderResult)
-            return std::unexpected(shaderResult.error());
-
-        s_batchShader.emplace(std::move(*shaderResult));
+        if (!s_batchShader)
+            return std::unexpected(
+                Core::ErrorInfo::make(
+                    Core::ErrorCode::ShaderCompileFailed,
+                    "batch shader failed to load"
+                )
+            );
 
         // Upload the sampler array uniform once. This tells the
         // shader "u_Textures[0] reads from unit 0, u_Textures[1]
@@ -422,7 +429,7 @@ namespace Engine::Renderer
         s_indexBuffer.reset();
         s_vertexBuffer.reset();
         s_whiteTexture.reset();
-        s_batchShader.reset();
+        s_batchShader = nullptr;   // owned by the AssetManager; just drop our pointer
 
         // Free the CPU staging buffer.
         s_vertexStorage.clear();
