@@ -147,15 +147,8 @@
       <Project>{8ebd052f-0aac-4896-9ca0-bf6f52c1482d}</Project>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="assets\shaders\batch_quad\fragment.glsl" />
-    <None Include="assets\shaders\batch_quad\vertex.glsl" />
-    <None Include="scenes\Grid.json" />
-    <None Include="scenes\Ring.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="assets\textures\Sheet.png" />
-  </ItemGroup>
+  <!-- Content lives in the project folder (projects/Sandbox), not in the
+       runtime exe. The runtime loads it at startup; nothing to bundle here. -->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

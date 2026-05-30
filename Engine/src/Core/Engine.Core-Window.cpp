@@ -48,7 +48,7 @@ namespace Engine::Core {
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 
         // Ω::Create ───────────────────────────────────────────────────
-        auto* raw = glfwCreateWindow(props.width, props.height, props.title.data(),nullptr, nullptr);
+        auto* raw = glfwCreateWindow(props.width, props.height, props.title.c_str(),nullptr, nullptr);
 
         if(!raw) {
             glfwTerminate();

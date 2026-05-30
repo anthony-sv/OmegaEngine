@@ -192,7 +192,9 @@
     <ClCompile Include="modules\Scene\Engine.Scene-World.cppm" />
     <ClCompile Include="modules\Scene\Engine.Scene-SceneManager.cppm" />
     <ClCompile Include="modules\Scene\Engine.Scene-Serializer.cppm" />
+    <ClCompile Include="modules\Scene\Engine.Scene-Project.cppm" />
     <ClCompile Include="src\Scene\Engine.Scene-Serializer.cpp" />
+    <ClCompile Include="src\Scene\Engine.Scene-Project.cpp" />
     <ClCompile Include="modules\Systems\Engine.Systems.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-RenderSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-MovementSystem.cppm" />

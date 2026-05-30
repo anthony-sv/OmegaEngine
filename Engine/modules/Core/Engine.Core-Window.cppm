@@ -26,7 +26,7 @@ import :Error;
 namespace Engine::Core {
 
     export struct WindowProps {
-        std::string_view title { "ΩmegaEngine" };
+        std::string      title { "ΩmegaEngine" };
         int              width { 1280 };
         int              height { 720 };
         bool             vsync { true };

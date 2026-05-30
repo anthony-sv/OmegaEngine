@@ -1,0 +1,15 @@
+{
+  "name": "Sandbox",
+  "startupScene": "Grid",
+  "scenes": [
+    "Grid",
+    "Ring"
+  ],
+  "window": {
+    "title": "ΩmegaEngine — Sandbox",
+    "width": 1280,
+    "height": 720,
+    "vsync": true,
+    "decorated": true
+  }
+}
