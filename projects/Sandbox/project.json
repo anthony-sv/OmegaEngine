@@ -3,7 +3,8 @@
   "startupScene": "Grid",
   "scenes": [
     "Grid",
-    "Ring"
+    "Ring",
+    "Physics"
   ],
   "window": {
     "title": "ΩmegaEngine — Sandbox",

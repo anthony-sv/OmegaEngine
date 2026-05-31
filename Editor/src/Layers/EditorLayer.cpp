@@ -78,6 +78,87 @@ namespace
                 ImGui::Checkbox("Playing", &a.playing);
             }
         }
+
+        // ── Physics ─────────────────────────────────────────────────
+
+        if (entity.has<RigidBody2D>())
+        {
+            auto& rb = entity.get<RigidBody2D>();
+            if (ImGui::CollapsingHeader("Rigid Body 2D", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                char const* const kinds[] = { "Static", "Dynamic", "Kinematic" };
+                int kind = static_cast<int>(rb.type);
+                if (ImGui::Combo("Body Type", &kind, kinds, 3))
+                    rb.type = static_cast<RigidBody2D::BodyType>(kind);
+
+                ImGui::DragFloat ("Mass",          &rb.mass,         0.05f, 0.0f, 1000.0f);
+                ImGui::DragFloat ("Gravity Scale", &rb.gravityScale, 0.05f, -10.0f, 10.0f);
+                ImGui::Checkbox  ("Fixed Rotation", &rb.fixedRotation);
+            }
+        }
+
+        // Shared material/trigger editor for any collider.
+        auto material = [](float& density, float& friction, float& restitution, bool& isTrigger)
+        {
+            ImGui::DragFloat("Density",     &density,     0.05f, 0.0f, 100.0f);
+            ImGui::DragFloat("Friction",    &friction,    0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Restitution", &restitution, 0.01f, 0.0f, 1.0f);
+            ImGui::Checkbox ("Is Trigger",  &isTrigger);
+        };
+
+        if (entity.has<BoxCollider2D>())
+        {
+            auto& c = entity.get<BoxCollider2D>();
+            if (ImGui::CollapsingHeader("Box Collider 2D", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::DragFloat2("Size##box",   &c.size.x,   0.05f, 0.01f, 100.0f);
+                ImGui::DragFloat2("Offset##box", &c.offset.x, 0.05f);
+                material(c.density, c.friction, c.restitution, c.isTrigger);
+            }
+        }
+
+        if (entity.has<CircleCollider2D>())
+        {
+            auto& c = entity.get<CircleCollider2D>();
+            if (ImGui::CollapsingHeader("Circle Collider 2D", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::DragFloat ("Radius##cir", &c.radius,   0.05f, 0.01f, 100.0f);
+                ImGui::DragFloat2("Offset##cir", &c.offset.x, 0.05f);
+                material(c.density, c.friction, c.restitution, c.isTrigger);
+            }
+        }
+
+        if (entity.has<PolygonCollider2D>())
+        {
+            auto& c = entity.get<PolygonCollider2D>();
+            if (ImGui::CollapsingHeader("Polygon Collider 2D", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                for (std::size_t i = 0; i < c.points.size(); ++i)
+                {
+                    ImGui::PushID(static_cast<int>(i));
+                    ImGui::DragFloat2("Point", &c.points[i].x, 0.05f);
+                    ImGui::PopID();
+                }
+                material(c.density, c.friction, c.restitution, c.isTrigger);
+            }
+        }
+
+        // ── Add Component ───────────────────────────────────────────
+
+        ImGui::Separator();
+        if (ImGui::Button("Add Component"))
+            ImGui::OpenPopup("AddComponent");
+
+        if (ImGui::BeginPopup("AddComponent"))
+        {
+            if (!entity.has<Transform>()         && ImGui::MenuItem("Transform"))           entity.add<Transform>();
+            if (!entity.has<SpriteRenderer>()    && ImGui::MenuItem("Sprite Renderer"))     entity.add<SpriteRenderer>();
+            if (!entity.has<Velocity2D>()        && ImGui::MenuItem("Velocity2D"))          entity.add<Velocity2D>();
+            if (!entity.has<RigidBody2D>()       && ImGui::MenuItem("Rigid Body 2D"))       entity.add<RigidBody2D>();
+            if (!entity.has<BoxCollider2D>()     && ImGui::MenuItem("Box Collider 2D"))     entity.add<BoxCollider2D>();
+            if (!entity.has<CircleCollider2D>()  && ImGui::MenuItem("Circle Collider 2D"))  entity.add<CircleCollider2D>();
+            ImGui::EndPopup();
+        }
     }
 }
 
@@ -111,6 +192,20 @@ void EditorLayer::onAttach()
     // to see the test quads spread around the origin.
     m_camera.emplace(16.0f / 9.0f, 2.0f);
 
+    // Console feedback when physics bodies collide during Play.
+    {
+        auto nameOf = [](Engine::ECS::Entity e) -> std::string
+        {
+            return (e.valid() && e.has<Engine::ECS::NameComponent>())
+                 ? e.get<Engine::ECS::NameComponent>().name : std::string { "?" };
+        };
+        Engine::Core::Application::get().eventBus().subscribe<Engine::Physics::CollisionEnterEvent>(
+            [nameOf](Engine::Physics::CollisionEnterEvent const& e)
+            {
+                std::println("[Ω::Physics] collision  {} <-> {}", nameOf(e.a), nameOf(e.b));
+            });
+    }
+
     // ── ECS world ──────────────────────────────────────
     // The viewport now renders a managed World not a loose Registry. 
     // 
@@ -125,8 +220,11 @@ void EditorLayer::onAttach()
     world.setOnEnter([this](Engine::Scene::World& w)
     {
         // Systems are engine CODE (not serialized) -- always added.
+        // They only TICK while the editor is in Play mode (see onUpdate);
+        // in Edit mode the world is static so it can be authored.
         w.addSystem<Engine::Systems::MovementSystem>();
         w.addSystem<Engine::Systems::AnimationSystem>();
+        w.addSystem<Engine::Physics::PhysicsSystem>(Engine::Core::Application::get().eventBus());
 
         // Entities are pure DATA: loaded from scenes/<name>.json. No
         // code fallback -- a scene is authored (Ctrl+S) and committed.
@@ -156,12 +254,16 @@ void EditorLayer::onUpdate(float dt)
     using Engine::Core::Key;
     using Input = Engine::Core::Input;
 
-    // Advance the active world's systems (spins the ECS quads). Runs
-    // every frame, regardless of whether the viewport has focus.
-    m_sceneManager.onUpdate(dt);
+    // Always pump the manager so the scene LOADS (the deferred initial
+    // switch runs enter()) and actions route -- but only TICK the world's
+    // systems in Play mode, so Edit mode stays static for authoring.
+    m_sceneManager.onUpdate(dt, m_playing);
 
     // Global editor shortcuts (work regardless of viewport focus):
-    //   Ctrl+S = save scene, Ctrl+O = load scene.
+    //   Ctrl+S = save scene, Ctrl+O = load scene, Ctrl+P = play/stop.
+    if (Input::isKeyDown(Key::LeftControl) && Input::wasKeyPressed(Key::P))
+        togglePlay();
+
     if (Input::isKeyDown(Key::LeftControl))
     {
         if (Input::wasKeyPressed(Key::S)) saveScene();
@@ -225,7 +327,14 @@ void EditorLayer::onRender(float /*alpha*/)
     // world. The FBO is still bound here, so these quads land in the
     // same off-screen target as the demo batch.
     if (auto* world = m_sceneManager.active())
+    {
         Engine::Systems::RenderSystem::render(world->registry(), *m_camera);
+
+        // Collider wireframe overlay (authoring aid). Drawn after the
+        // sprites, into the same FBO, so it sits on top.
+        if (m_showColliders)
+            Engine::Systems::RenderSystem::renderColliders(world->registry(), *m_camera);
+    }
 
     m_framebuffer->unbind();
 }
@@ -274,7 +383,22 @@ void EditorLayer::onImGuiRender()
             ImGui::MenuItem("Inspector", nullptr, &m_showInspector);
             ImGui::MenuItem("Hierarchy", nullptr, &m_showHierarchy);
             ImGui::MenuItem("Console", nullptr, &m_showConsole);
+            ImGui::Separator();
+            ImGui::MenuItem("Colliders", nullptr, &m_showColliders);
             ImGui::EndMenu();
+        }
+
+        // Play / Stop toggle (edit vs play-in-editor). Green = will play,
+        // red = currently playing (click to stop + restore).
+        ImGui::PushStyleColor(ImGuiCol_Button, m_playing ? ImVec4 { 0.70f, 0.20f, 0.20f, 1.0f }
+                                                         : ImVec4 { 0.20f, 0.55f, 0.30f, 1.0f });
+        if(ImGui::Button(m_playing ? "Stop##play" : "Play##play", { 60.0f, 0.0f }))
+            togglePlay();
+        ImGui::PopStyleColor();
+        if(m_playing)
+        {
+            ImGui::SameLine();
+            ImGui::TextColored({ 0.9f, 0.6f, 0.3f, 1.0f }, "PLAYING");
         }
 
         ImVec2 const tl = ImGui::GetWindowPos();
@@ -495,4 +619,37 @@ void EditorLayer::loadScene()
         *world, "scenes/" + world->name() + ".json", Engine::Core::Application::get().assets());
     if (!result)
         std::println(std::cerr, "[Ω::EditorLayer] load failed: {}", result.error().message);
+}
+
+void EditorLayer::togglePlay()
+{
+    auto* world = m_sceneManager.active();
+    if (!world) return;
+
+    // A throwaway snapshot of the PRE-play (possibly edited) state. We
+    // reuse the scene serializer rather than the committed scene file, so
+    // Play captures unsaved edits and Stop restores exactly them.
+    auto const snapshot = std::filesystem::temp_directory_path() / "omega_editor_play_snapshot.json";
+
+    if (!m_playing)
+    {
+        // Edit -> Play: snapshot, then let the systems run.
+        if (auto const r = Engine::Scene::SceneSerializer::save(*world, snapshot); !r)
+        {
+            std::println(std::cerr, "[Ω::EditorLayer] play snapshot failed: {}", r.error().message);
+            return;     // don't enter Play if we couldn't capture a restore point
+        }
+        m_playing = true;
+        std::println("[Ω::EditorLayer] ▶ play");
+    }
+    else
+    {
+        // Play -> Edit: restore the snapshot, discarding the simulation.
+        m_playing  = false;
+        m_selected = {};    // entities are recreated by load(); old handle is stale
+        if (auto const r = Engine::Scene::SceneSerializer::load(
+                *world, snapshot, Engine::Core::Application::get().assets()); !r)
+            std::println(std::cerr, "[Ω::EditorLayer] restore failed: {}", r.error().message);
+        std::println("[Ω::EditorLayer] ■ stop");
+    }
 }

@@ -5,6 +5,7 @@ import Engine.Renderer;
 import Engine.ECS;
 import Engine.Scene;
 import Engine.Systems;
+import Engine.Physics;
 import std;
 
 SandboxLayer::SandboxLayer(Engine::Scene::Project project)
@@ -28,6 +29,26 @@ void SandboxLayer::onAttach()
     auto const& win = m_project.window();
     m_camera.emplace(static_cast<float>(win.width) / static_cast<float>(win.height), 3.0f);
 
+    // Log physics collisions/triggers (proves the EventBus pipeline). The
+    // subscription lives for the layer's lifetime.
+    auto& bus = Engine::Core::Application::get().eventBus();
+    auto nameOf = [](Engine::ECS::Entity e) -> std::string
+    {
+        return (e.valid() && e.has<Engine::ECS::NameComponent>())
+             ? e.get<Engine::ECS::NameComponent>().name : std::string { "?" };
+    };
+    bus.subscribe<Engine::Physics::CollisionEnterEvent>(
+        [nameOf](Engine::Physics::CollisionEnterEvent const& e)
+        {
+            std::println("[Ω::Physics] collision {} <-> {}  (normal {:.2f}, {:.2f})",
+                         nameOf(e.a), nameOf(e.b), e.manifold.normal.x, e.manifold.normal.y);
+        });
+    bus.subscribe<Engine::Physics::TriggerEnterEvent>(
+        [nameOf](Engine::Physics::TriggerEnterEvent const& e)
+        {
+            std::println("[Ω::Physics] trigger {} entered by {}", nameOf(e.sensor), nameOf(e.other));
+        });
+
     // A copy of the project's scene list, captured by the per-scene
     // hooks so SPACE can cycle through it.
     auto const sceneNames = m_project.scenes();
@@ -43,6 +64,11 @@ void SandboxLayer::onAttach()
 
         w.addSystem<Engine::Systems::MovementSystem>();
         w.addSystem<Engine::Systems::AnimationSystem>();
+
+        // Physics is universal engine code; entities opt IN by carrying a
+        // RigidBody2D + collider. Scenes without physics bodies (Grid/Ring)
+        // just step an empty world -- effectively free.
+        w.addSystem<Engine::Physics::PhysicsSystem>(Engine::Core::Application::get().eventBus());
 
         // SPACE -> cycle to the NEXT scene in the project's list. The
         // "next" is computed from data (this world's position in the

@@ -21,6 +21,7 @@
     "glm",
     "stb",
     "entt",
-    "nlohmann-json"
+    "nlohmann-json",
+    "box2d"
   ]
 }

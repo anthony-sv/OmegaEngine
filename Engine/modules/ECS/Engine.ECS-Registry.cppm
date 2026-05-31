@@ -173,6 +173,17 @@ namespace Engine::ECS
             m_registry.destroy(entity.id());
         }
 
+        // Rebuild an Entity handle from a raw entity value (the full
+        // entt id incl. version, as returned by Entity::id()). Used by
+        // external systems -- e.g. physics, which stashes the id in a
+        // Box2D body's userData -- to map results back to entities
+        // without exposing entt. A stale/recycled id yields an Entity
+        // whose valid() is false.
+        [[nodiscard]] Entity entityFromId(std::uint32_t raw)
+        {
+            return Entity { static_cast<entt::entity>(raw), &m_registry };
+        }
+
 
         // -- Validity ---------------------------------------------------
 

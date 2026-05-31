@@ -30,7 +30,7 @@ namespace Engine::Renderer
     //             dark halo and bleeding between atlas cells.
     //   Linear  — bilinear blend. Smooth for photos / continuous-tone
     //             textures displayed at non-native sizes.
-    export enum class TextureFilter
+    export enum class TextureFilter : std::uint8_t
     {
         Nearest,
         Linear,

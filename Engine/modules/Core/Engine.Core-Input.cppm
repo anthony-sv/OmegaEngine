@@ -50,7 +50,7 @@ namespace Engine::Core
     // Values deliberately match the GLFW codes (static_assert'd in the
     // .cpp) so they pass straight to glfwGetKey without a lookup table.
 
-    export enum class Key : int
+    export enum class Key : std::int32_t
     {
         Space        = 32,
 
@@ -80,7 +80,7 @@ namespace Engine::Core
         RightAlt     = 346,
     };
 
-    export enum class MouseButton : int
+    export enum class MouseButton : std::int32_t
     {
         Left   = 0,
         Right  = 1,

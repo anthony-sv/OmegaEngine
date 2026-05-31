@@ -1,3 +1,7 @@
+module;
+
+#include "glm/glm.hpp"
+
 export module Engine.Systems:RenderSystem;
 
 import Engine.ECS;
@@ -92,6 +96,51 @@ namespace Engine::Systems
             Renderer::Renderer2D::endBatch();
         }
 
+        // Draw a WIREFRAME overlay of every collider (box/circle/polygon)
+        // as seen through `camera`. Reads the ECS collider COMPONENTS, not
+        // Box2D bodies, so it works in the editor's Edit mode too (where
+        // no simulation is running) -- ideal for checking that a collider
+        // matches its sprite. Triggers (sensors) draw yellow, solids green.
+        // Call after render(), into the same target.
+        static void renderColliders(ECS::Registry& registry, Renderer::Camera2D const& camera)
+        {
+            constexpr glm::vec4 solid  { 0.25f, 0.90f, 0.35f, 1.0f };
+            constexpr glm::vec4 sensor { 0.95f, 0.85f, 0.20f, 1.0f };
+            constexpr float     thick = 0.025f;
+
+            Renderer::Renderer2D::beginBatch(camera);
+
+            for (auto&& [e, tf, c] : registry.view<ECS::Transform, ECS::BoxCollider2D>().each())
+                drawBoxOutline(
+                    tf.position + rotateVec(c.offset, tf.rotation), 
+                    c.size, tf.rotation,
+                    c.isTrigger ? sensor : solid,
+                    thick
+                );
+
+            for (auto&& [e, tf, c] : registry.view<ECS::Transform, ECS::CircleCollider2D>().each())
+                drawCircleOutline(
+                    tf.position + rotateVec(c.offset, tf.rotation), 
+                    c.radius,
+                    c.isTrigger ? sensor : solid, 
+                    thick
+                );
+
+            for (auto&& [e, tf, c] : registry.view<ECS::Transform, ECS::PolygonCollider2D>().each())
+            {
+                auto const n = c.points.size();
+                for (std::size_t i = 0; i < n; ++i)
+                    drawLine(
+                        tf.position + rotateVec(c.points[i], tf.rotation),
+                        tf.position + rotateVec(c.points[(i + 1) % n], tf.rotation),
+                        thick, 
+                        c.isTrigger ? sensor : solid
+                    );
+            }
+
+            Renderer::Renderer2D::endBatch();
+        }
+
         // Static-only class -- no instances.
         RenderSystem() = delete;
 
@@ -108,25 +157,70 @@ namespace Engine::Systems
         {
             bool const rotated = (transform.rotation != 0.0f);
 
+            // Transform.position is the entity CENTER (consistent with the
+            // physics body and the collider). The batch renderer's draw
+            // overloads take the bottom-left corner and rotate about the
+            // quad centre, so shift by -scale/2 to centre the sprite on
+            // position. (Rotation then pivots about position too.)
+            glm::vec2 const drawPos = transform.position - transform.scale * 0.5f;
+
             if (sprite.texture != nullptr)
             {
+                glm::vec2 uvMin = sprite.uvMin;
+                glm::vec2 uvMax = sprite.uvMax;
+
+                // HALF-TEXEL INSET (atlas anti-bleed). When a sprite uses
+                // a SUB-REGION of an atlas (uv != the full [0,1] rect), a
+                // texel sampled exactly at the cell boundary can land in
+                // the NEIGHBOURING cell -- showing up as a dark/garbage
+                // edge, most visible under minification (small windows /
+                // low-DPI displays). Pulling the UV rect in by half a
+                // texel keeps sampling strictly inside the cell. We skip
+                // full-texture sprites (no neighbour) and tiling sprites
+                // (uv stays [0,1]; tilingFactor repeats in the shader), so
+                // seamless tiling is unaffected.
+                bool const atlas = (
+                    uvMin != glm::vec2 { 0.0f, 0.0f } 
+                    || uvMax != glm::vec2 { 1.0f, 1.0f }
+                );
+                if (atlas)
+                {
+                    glm::vec2 const halfTexel = 0.5f / glm::vec2 {
+                        static_cast<float>(sprite.texture->width()),
+                        static_cast<float>(sprite.texture->height())
+                    };
+                    uvMin += halfTexel;
+                    uvMax -= halfTexel;
+                }
+
                 // Textured sprite. SpriteRenderer stores a raw texture
                 // pointer plus a UV sub-region; wrap them in a transient
                 // SubTexture2D so we can reuse the atlas-aware draw path.
                 // SubTexture2D is a lightweight value (pointer + 2 vec2s),
                 // so constructing one per draw is effectively free.
                 Renderer::SubTexture2D const sub {
-                    *sprite.texture, sprite.uvMin, sprite.uvMax
+                    *sprite.texture, 
+                    uvMin, 
+                    uvMax
                 };
 
                 if (rotated)
                     Renderer::Renderer2D::drawRotatedQuad(
-                        transform.position, transform.scale, transform.rotation,
-                        sub, sprite.color, sprite.tilingFactor);
+                        drawPos, 
+                        transform.scale, 
+                        transform.rotation,
+                        sub, 
+                        sprite.color, 
+                        sprite.tilingFactor
+                    );
                 else
                     Renderer::Renderer2D::drawQuad(
-                        transform.position, transform.scale,
-                        sub, sprite.color, sprite.tilingFactor);
+                        drawPos, 
+                        transform.scale,
+                        sub, 
+                        sprite.color, 
+                        sprite.tilingFactor
+                    );
             }
             else
             {
@@ -134,11 +228,78 @@ namespace Engine::Systems
                 // white texture turns white * color into a flat color).
                 if (rotated)
                     Renderer::Renderer2D::drawRotatedQuad(
-                        transform.position, transform.scale, transform.rotation,
-                        sprite.color);
+                        drawPos, 
+                        transform.scale, 
+                        transform.rotation,
+                        sprite.color
+                    );
                 else
                     Renderer::Renderer2D::drawQuad(
-                        transform.position, transform.scale, sprite.color);
+                        drawPos, 
+                        transform.scale, 
+                        sprite.color
+                    );
+            }
+        }
+
+        // -- Debug-draw primitives (lines built from thin rotated quads,
+        //    so they reuse the existing quad batch -- no GL line pipeline) --
+
+        // Rotate `v` by `degrees` (CCW), matching Transform's convention.
+        static glm::vec2 rotateVec(glm::vec2 v, float degrees)
+        {
+            float const r = glm::radians(degrees);
+            float const c = std::cos(r);
+            float const s = std::sin(r);
+            return { v.x * c - v.y * s, v.x * s + v.y * c };
+        }
+
+        // A line a->b drawn as a thin quad of the given world-space thickness.
+        static void drawLine(glm::vec2 a, glm::vec2 b, float thickness, glm::vec4 color)
+        {
+            glm::vec2 const d   = b - a;
+            float     const len = glm::length(d);
+            if (len < 1e-6f)
+                return;
+
+            float     const angle = glm::degrees(std::atan2(d.y, d.x));
+            glm::vec2 const size  { len, thickness };
+            glm::vec2 const mid   = (a + b) * 0.5f;
+
+            // drawRotatedQuad takes the bottom-left corner and pivots about
+            // the quad centre, so pass (mid - size/2) to centre the thin
+            // quad exactly on the segment midpoint.
+            Renderer::Renderer2D::drawRotatedQuad(mid - size * 0.5f, size, angle, color);
+        }
+
+        static void drawBoxOutline(glm::vec2 center, glm::vec2 size, float rotationDeg, glm::vec4 color, float thick)
+        {
+            glm::vec2 const h = size * 0.5f;
+            glm::vec2 corner[4] = {
+                { -h.x, -h.y }, 
+                { h.x, -h.y }, 
+                { h.x, h.y }, 
+                { -h.x, h.y }
+            };
+            for (auto& p : corner)
+                p = center + rotateVec(p, rotationDeg);
+
+            for (int i = 0; i < 4; ++i)
+                drawLine(corner[i], corner[(i + 1) % 4], thick, color);
+        }
+
+        static void drawCircleOutline(glm::vec2 center, float radius, glm::vec4 color, float thick)
+        {
+            constexpr int          segments = 24;
+            constexpr float        tau      = 6.283185307f;
+            glm::vec2              prev      = center + glm::vec2 { radius, 0.0f };
+
+            for (int i = 1; i <= segments; ++i)
+            {
+                float const a = (static_cast<float>(i) / segments) * tau;
+                glm::vec2 const cur = center + glm::vec2 { std::cos(a), std::sin(a) } * radius;
+                drawLine(prev, cur, thick, color);
+                prev = cur;
             }
         }
 

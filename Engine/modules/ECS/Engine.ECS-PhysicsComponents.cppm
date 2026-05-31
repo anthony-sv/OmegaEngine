@@ -103,6 +103,10 @@ namespace Engine::ECS
         float density     { 1.0f };
         float friction    { 0.3f };
         float restitution { 0.0f };
+
+        // A trigger (sensor) detects overlap and fires Trigger events but
+        // produces NO collision response -- pickups, checkpoints, zones.
+        bool  isTrigger   { false };
 	}; // struct BoxCollider2D
 
 
@@ -122,6 +126,31 @@ namespace Engine::ECS
         float density     { 1.0f };
         float friction    { 0.3f };
         float restitution { 0.0f };
+
+        bool  isTrigger   { false };
 	}; // struct CircleCollider2D
+
+
+    // -----------------------------------------------------------------
+    // PolygonCollider2D -- arbitrary CONVEX polygon collision shape.
+    //
+    // points: vertices in local space (relative to the entity origin),
+    //         3..8 of them. Box2D computes the convex hull, so the
+    //         winding order doesn't matter, but the shape must be convex
+    //         (concave shapes need several colliders / a future compound
+    //         collider). For boxes and circles prefer the dedicated
+    //         components -- this is for ramps, hexes, custom hitboxes.
+    // -----------------------------------------------------------------
+
+    export struct PolygonCollider2D
+    {
+        std::vector<glm::vec2> points;
+
+        float density     { 1.0f };
+        float friction    { 0.3f };
+        float restitution { 0.0f };
+
+        bool  isTrigger   { false };
+	}; // struct PolygonCollider2D
 
 } // namespace ECS

@@ -114,12 +114,17 @@ namespace Engine::Scene
 
         // Apply any pending switch (frame boundary), then tick the
         // active world's systems. Call once from the layer's onUpdate.
-        void onUpdate(float dt)
+        //
+        // tickSystems=false applies the switch + routes actions but does
+        // NOT advance the world's systems -- the editor uses this for its
+        // EDIT mode, where the scene must still LOAD (via the switch's
+        // enter() hook) but stay static until the user presses Play.
+        void onUpdate(float dt, bool tickSystems = true)
         {
             ensureSubscribed();
             applyPendingSwitch();
 
-            if (m_active)
+            if (m_active && tickSystems)
                 m_active->onUpdate(dt);
         }
 

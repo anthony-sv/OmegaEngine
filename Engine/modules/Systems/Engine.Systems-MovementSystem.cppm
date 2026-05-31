@@ -76,7 +76,13 @@ namespace Engine::Systems
                 )
             {
                 transform.position += velocity.linear  * dt;
-                transform.rotation += velocity.angular * dt;
+
+                // Wrap into [0, 360) so the angle never grows without
+                // bound (otherwise it accumulates forever and eventually
+                // loses float precision -- and serializes as e.g. 4652°).
+                transform.rotation = std::fmod(transform.rotation + velocity.angular * dt, 360.0f);
+                if (transform.rotation < 0.0f)
+                    transform.rotation += 360.0f;
             }
         }
 

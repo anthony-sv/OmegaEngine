@@ -98,6 +98,59 @@ namespace Engine::Scene
                 };
             }
 
+            if (e.has<RigidBody2D>())
+            {
+                auto const& rb = e.get<RigidBody2D>();
+                je["RigidBody2D"] = {
+                    { "type",          static_cast<int>(rb.type) },   // 0 Static, 1 Dynamic, 2 Kinematic
+                    { "mass",          rb.mass },
+                    { "gravityScale",  rb.gravityScale },
+                    { "fixedRotation", rb.fixedRotation },
+                };
+            }
+
+            if (e.has<BoxCollider2D>())
+            {
+                auto const& c = e.get<BoxCollider2D>();
+                je["BoxCollider2D"] = {
+                    { "size",        toJson(c.size) },
+                    { "offset",      toJson(c.offset) },
+                    { "density",     c.density },
+                    { "friction",    c.friction },
+                    { "restitution", c.restitution },
+                    { "isTrigger",   c.isTrigger },
+                };
+            }
+
+            if (e.has<CircleCollider2D>())
+            {
+                auto const& c = e.get<CircleCollider2D>();
+                je["CircleCollider2D"] = {
+                    { "radius",      c.radius },
+                    { "offset",      toJson(c.offset) },
+                    { "density",     c.density },
+                    { "friction",    c.friction },
+                    { "restitution", c.restitution },
+                    { "isTrigger",   c.isTrigger },
+                };
+            }
+
+            if (e.has<PolygonCollider2D>())
+            {
+                auto const& c = e.get<PolygonCollider2D>();
+                json pts = json::array();
+                for (auto const& p : c.points)
+                    pts.push_back(toJson(p));
+
+                je["PolygonCollider2D"] = {
+                    { "points",      pts },
+                    { "density",     c.density },
+                    { "friction",    c.friction },
+                    { "restitution", c.restitution },
+                    { "isTrigger",   c.isTrigger },
+                };
+            }
+
             entities.push_back(std::move(je));
         });
 
@@ -191,6 +244,56 @@ namespace Engine::Scene
                 anim.looping       = ja.value("looping", true);
                 anim.playing       = ja.value("playing", true);
                 e.add<SpriteAnimation>(std::move(anim));
+            }
+
+            if (je.contains("RigidBody2D"))
+            {
+                auto const& j = je["RigidBody2D"];
+                RigidBody2D rb;
+                rb.type          = static_cast<RigidBody2D::BodyType>(j.value("type", 1));   // default Dynamic
+                rb.mass          = j.value("mass", 1.0f);
+                rb.gravityScale  = j.value("gravityScale", 1.0f);
+                rb.fixedRotation = j.value("fixedRotation", false);
+                e.add<RigidBody2D>(rb);
+            }
+
+            if (je.contains("BoxCollider2D"))
+            {
+                auto const& j = je["BoxCollider2D"];
+                BoxCollider2D c;
+                c.size        = vec2From(j.at("size"));
+                c.offset      = vec2From(j.value("offset", json::array({ 0.0f, 0.0f })));
+                c.density     = j.value("density", 1.0f);
+                c.friction    = j.value("friction", 0.3f);
+                c.restitution = j.value("restitution", 0.0f);
+                c.isTrigger   = j.value("isTrigger", false);
+                e.add<BoxCollider2D>(c);
+            }
+
+            if (je.contains("CircleCollider2D"))
+            {
+                auto const& j = je["CircleCollider2D"];
+                CircleCollider2D c;
+                c.radius      = j.value("radius", 0.5f);
+                c.offset      = vec2From(j.value("offset", json::array({ 0.0f, 0.0f })));
+                c.density     = j.value("density", 1.0f);
+                c.friction    = j.value("friction", 0.3f);
+                c.restitution = j.value("restitution", 0.0f);
+                c.isTrigger   = j.value("isTrigger", false);
+                e.add<CircleCollider2D>(c);
+            }
+
+            if (je.contains("PolygonCollider2D"))
+            {
+                auto const& j = je["PolygonCollider2D"];
+                PolygonCollider2D c;
+                for (auto const& jp : j.value("points", json::array()))
+                    c.points.push_back(vec2From(jp));
+                c.density     = j.value("density", 1.0f);
+                c.friction    = j.value("friction", 0.3f);
+                c.restitution = j.value("restitution", 0.0f);
+                c.isTrigger   = j.value("isTrigger", false);
+                e.add<PolygonCollider2D>(std::move(c));
             }
             }
         }

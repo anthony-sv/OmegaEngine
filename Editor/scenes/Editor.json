@@ -175,6 +175,40 @@
           0.699999988079071
         ]
       }
+    },
+    {
+      "Name": "Phys Floor",
+      "Transform": { "position": [0.0, -2.0], "rotation": 0.0, "scale": [5.0, 0.3] },
+      "SpriteRenderer": { "color": [0.40, 0.42, 0.48, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
+      "RigidBody2D": { "type": 0, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
+      "BoxCollider2D": { "size": [5.0, 0.3], "offset": [0.0, 0.0], "density": 1.0, "friction": 0.6, "restitution": 0.0, "isTrigger": false }
+    },
+    {
+      "Name": "Phys Box",
+      "Transform": { "position": [0.1, 1.8], "rotation": 12.0, "scale": [0.5, 0.5] },
+      "SpriteRenderer": { "color": [0.90, 0.45, 0.25, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
+      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
+      "BoxCollider2D": { "size": [0.5, 0.5], "offset": [0.0, 0.0], "density": 1.0, "friction": 0.3, "restitution": 0.2, "isTrigger": false }
+    },
+    {
+      "Name": "Phys Ball",
+      "Transform": { "position": [-1.1, 1.6], "rotation": 0.0, "scale": [0.7, 0.7] },
+      "SpriteRenderer": { "color": [0.35, 0.55, 0.95, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
+      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
+      "CircleCollider2D": { "radius": 0.35, "offset": [0.0, 0.0], "density": 1.0, "friction": 0.3, "restitution": 0.55, "isTrigger": false }
+    },
+    {
+      "Name": "Phys Hexagon",
+      "Transform": { "position": [-2.2, 1.6], "rotation": 0.0, "scale": [0.9, 0.9] },
+      "SpriteRenderer": { "color": [0.70, 0.35, 0.85, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
+      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
+      "PolygonCollider2D": {
+        "points": [
+          [0.45, 0.0], [0.225, 0.39], [-0.225, 0.39],
+          [-0.45, 0.0], [-0.225, -0.39], [0.225, -0.39]
+        ],
+        "density": 1.0, "friction": 0.4, "restitution": 0.2, "isTrigger": false
+      }
     }
   ],
   "name": "Editor"

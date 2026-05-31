@@ -199,6 +199,13 @@
     <ClCompile Include="modules\Systems\Engine.Systems-RenderSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-MovementSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-AnimationSystem.cppm" />
+    <ClCompile Include="modules\Physics\Engine.Physics.cppm" />
+    <ClCompile Include="modules\Physics\Engine.Physics-Math.cppm" />
+    <ClCompile Include="modules\Physics\Engine.Physics-Events.cppm" />
+    <ClCompile Include="modules\Physics\Engine.Physics-PhysicsWorld.cppm" />
+    <ClCompile Include="modules\Physics\Engine.Physics-PhysicsSystem.cppm" />
+    <ClCompile Include="src\Physics\Engine.Physics-PhysicsWorld.cpp" />
+    <ClCompile Include="src\Physics\Engine.Physics-PhysicsSystem.cpp" />
   </ItemGroup>
   <!-- EnTT consumed as a header unit. Building this shim with
        CompileAsHeaderUnit produces the .ifc that Engine.ECS-Registry.EnTT
