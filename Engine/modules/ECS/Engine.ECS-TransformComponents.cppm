@@ -51,4 +51,27 @@ namespace Engine::ECS
         glm::vec2 scale    { 1.0f, 1.0f };
 	}; // struct Transform
 
+
+    // -----------------------------------------------------------------
+    // PreviousTransform -- last fixed-step Transform, for RENDER
+    // INTERPOLATION.
+    //
+    // The simulation runs at a fixed rate (e.g. 60Hz) but the screen
+    // refreshes faster (144/160Hz...). Drawing the raw Transform shows
+    // each sim state for several frames then jumps -> micro-stutter. The
+    // InterpolationSystem snapshots the Transform into here at the START
+    // of every fixed step; the RenderSystem then draws
+    // lerp(previous, current, alpha), where alpha is the sub-step
+    // fraction (GameLoop::alpha()). Result: smooth motion at ANY refresh
+    // rate, with the simulation still deterministic and rate-independent.
+    //
+    // Runtime-only: NOT serialized (it is rebuilt every frame).
+    // -----------------------------------------------------------------
+
+    export struct PreviousTransform
+    {
+        glm::vec2 position { 0.0f, 0.0f };
+        float     rotation { 0.0f };            // degrees
+	}; // struct PreviousTransform
+
 } // namespace ECS

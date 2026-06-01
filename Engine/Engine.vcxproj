@@ -199,6 +199,7 @@
     <ClCompile Include="modules\Systems\Engine.Systems-RenderSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-MovementSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-AnimationSystem.cppm" />
+    <ClCompile Include="modules\Systems\Engine.Systems-InterpolationSystem.cppm" />
     <ClCompile Include="modules\Physics\Engine.Physics.cppm" />
     <ClCompile Include="modules\Physics\Engine.Physics-Math.cppm" />
     <ClCompile Include="modules\Physics\Engine.Physics-Events.cppm" />

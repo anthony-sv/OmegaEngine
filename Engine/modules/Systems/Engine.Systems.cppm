@@ -17,3 +17,4 @@ export module Engine.Systems;
 export import :RenderSystem;
 export import :MovementSystem;
 export import :AnimationSystem;
+export import :InterpolationSystem;

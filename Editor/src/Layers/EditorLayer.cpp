@@ -222,6 +222,7 @@ void EditorLayer::onAttach()
         // Systems are engine CODE (not serialized) -- always added.
         // They only TICK while the editor is in Play mode (see onUpdate);
         // in Edit mode the world is static so it can be authored.
+        w.addSystem<Engine::Systems::InterpolationSystem>();   // FIRST (snapshot before movers)
         w.addSystem<Engine::Systems::MovementSystem>();
         w.addSystem<Engine::Systems::AnimationSystem>();
         w.addSystem<Engine::Physics::PhysicsSystem>(Engine::Core::Application::get().eventBus());
@@ -307,7 +308,7 @@ void EditorLayer::onUpdate(float dt)
     m_camera->setRotation(rotation);
 }
 
-void EditorLayer::onRender(float /*alpha*/)
+void EditorLayer::onRender(float alpha)
 {
     if (!m_framebuffer || !m_camera) return;
 
@@ -328,12 +329,12 @@ void EditorLayer::onRender(float /*alpha*/)
     // same off-screen target as the demo batch.
     if (auto* world = m_sceneManager.active())
     {
-        Engine::Systems::RenderSystem::render(world->registry(), *m_camera);
+        Engine::Systems::RenderSystem::render(world->registry(), *m_camera, alpha);
 
         // Collider wireframe overlay (authoring aid). Drawn after the
         // sprites, into the same FBO, so it sits on top.
         if (m_showColliders)
-            Engine::Systems::RenderSystem::renderColliders(world->registry(), *m_camera);
+            Engine::Systems::RenderSystem::renderColliders(world->registry(), *m_camera, alpha);
     }
 
     m_framebuffer->unbind();

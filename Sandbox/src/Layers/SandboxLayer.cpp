@@ -62,6 +62,10 @@ void SandboxLayer::onAttach()
     {
         std::println("[Ω::Sandbox] enter scene '{}'", w.name());
 
+        // FIRST: snapshot transforms for render interpolation (must run
+        // before any system that moves an entity).
+        w.addSystem<Engine::Systems::InterpolationSystem>();
+
         w.addSystem<Engine::Systems::MovementSystem>();
         w.addSystem<Engine::Systems::AnimationSystem>();
 
@@ -141,11 +145,12 @@ void SandboxLayer::onUpdate(float dt)
     m_sceneManager.onUpdate(dt);
 }
 
-void SandboxLayer::onRender(float /*alpha*/)
+void SandboxLayer::onRender(float alpha)
 {
     auto* scene = m_sceneManager.active();
     if (!scene || !m_camera)
         return;
 
-    Engine::Systems::RenderSystem::render(scene->registry(), *m_camera);
+    // alpha (the fixed-step sub-frame fraction) drives render interpolation.
+    Engine::Systems::RenderSystem::render(scene->registry(), *m_camera, alpha);
 }
