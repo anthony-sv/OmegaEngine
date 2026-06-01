@@ -2,6 +2,7 @@ module;
 
 #include "imgui.h"
 #include "glm/glm.hpp"
+#include "IconsFontAwesome6.h"
 #ifdef _WIN32
 #   include "TitlebarState.hpp"
 #endif
@@ -337,6 +338,18 @@ void EditorLayer::onRender(float alpha)
             Engine::Systems::RenderSystem::renderColliders(world->registry(), *m_camera, alpha);
     }
 
+    // F2 -> screenshot the GAME VIEW (the viewport FBO, no editor chrome),
+    // captured while the FBO is still bound.
+    if (Engine::Core::Input::wasKeyPressed(Engine::Core::Key::F2))
+    {
+        auto const path = Engine::Renderer::Screenshot::timestamped();
+        if (auto r = Engine::Renderer::Screenshot::capture(
+                path, 0, 0,
+                static_cast<int>(m_framebuffer->width()),
+                static_cast<int>(m_framebuffer->height())); !r)
+            std::println(std::cerr, "[Ω::EditorLayer] screenshot failed: {}", r.error().message);
+    }
+
     m_framebuffer->unbind();
 }
 
@@ -393,7 +406,7 @@ void EditorLayer::onImGuiRender()
         // red = currently playing (click to stop + restore).
         ImGui::PushStyleColor(ImGuiCol_Button, m_playing ? ImVec4 { 0.70f, 0.20f, 0.20f, 1.0f }
                                                          : ImVec4 { 0.20f, 0.55f, 0.30f, 1.0f });
-        if(ImGui::Button(m_playing ? "Stop##play" : "Play##play", { 60.0f, 0.0f }))
+        if(ImGui::Button(m_playing ? ICON_FA_STOP " Stop##play" : ICON_FA_PLAY " Play##play", { 78.0f, 0.0f }))
             togglePlay();
         ImGui::PopStyleColor();
         if(m_playing)
@@ -427,12 +440,12 @@ void EditorLayer::onImGuiRender()
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 
         auto& win = Engine::Core::Application::get().window();
-        if(ImGui::Button(" - ##ΩMin", { btnW, frameH }))
+        if(ImGui::Button(ICON_FA_MINUS "##ΩMin", { btnW, frameH }))
             win.minimize();
 
         ImGui::SameLine(0, 0);
 
-        if(ImGui::Button(win.isMaximized() ? " = ##ΩMax" : " [] ##ΩMax", { btnW, frameH }))
+        if(ImGui::Button(win.isMaximized() ? ICON_FA_WINDOW_RESTORE "##ΩMax" : ICON_FA_WINDOW_MAXIMIZE "##ΩMax", { btnW, frameH }))
         {
             if(win.isMaximized())  win.restore();
             else                   win.maximize();
@@ -441,7 +454,7 @@ void EditorLayer::onImGuiRender()
         ImGui::SameLine(0, 0);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.86f, 0.2f, 0.2f, 1.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.70f, 0.1f, 0.1f, 1.0f });
-        if(ImGui::Button(" x ##ΩClose", { btnW, frameH }))
+        if(ImGui::Button(ICON_FA_XMARK "##ΩClose", { btnW, frameH }))
             win.close();
         ImGui::PopStyleColor(2);
 

@@ -172,6 +172,8 @@
     <ClCompile Include="src\Renderer\Engine.Renderer-RenderCommand.cpp" />
     <ClCompile Include="modules\Renderer\Engine.Renderer-Framebuffer.cppm" />
     <ClCompile Include="src\Renderer\Engine.Renderer-Framebuffer.cpp" />
+    <ClCompile Include="modules\Renderer\Engine.Renderer-Screenshot.cppm" />
+    <ClCompile Include="src\Renderer\Engine.Renderer-Screenshot.cpp" />
     <ClCompile Include="modules\Renderer\Engine.Renderer-Texture.cppm" />
     <ClCompile Include="src\Renderer\Engine.Renderer-Texture.cpp" />
     <ClCompile Include="modules\Renderer\Engine.Renderer-Camera2D.cppm" />

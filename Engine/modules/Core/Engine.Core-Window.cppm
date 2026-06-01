@@ -60,6 +60,7 @@ namespace Engine::Core {
         void restore()                        const;
         void close()                          const;
         void setTitle(std::string_view title) const;
+        void setIcon(std::filesystem::path const& path) const;   // window + taskbar icon (PNG)
         void setVsync(bool enabled)           const;
         void setPosition(int x, int y)        const;
         void setSize(int w, int h)            const;

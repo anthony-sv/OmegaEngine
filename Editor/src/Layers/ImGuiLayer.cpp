@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "IconsFontAwesome6.h"
 
 #ifdef _WIN32
 #   include <Windows.h>
@@ -113,19 +114,43 @@ void ImGuiLayer::onAttach() {
     io.IniFilename = "omega_editor_layout.ini";
     
     ImGui::StyleColorsDark();
-    
+
+    // Roomier controls: a larger base font + taller frame padding makes
+    // the (borderless) titlebar and its buttons easier to hit.
+    constexpr float fontSize = 17.0f;
+    {
+        auto& style = ImGui::GetStyle();
+        style.FramePadding = ImVec2(6.0f, 6.0f);
+        style.ItemSpacing  = ImVec2(8.0f, 6.0f);
+    }
+
     ImVector<ImWchar> ranges;
     ImFontGlyphRangesBuilder builder;
     builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
     builder.AddRanges(io.Fonts->GetGlyphRangesGreek());
     builder.BuildRanges(&ranges);
-    
+
     io.Fonts->AddFontFromFileTTF(
         "assets/fonts/JetBrainsMonoNL-Regular.ttf",
-        15.0f,
+        fontSize,
         nullptr,
         ranges.Data);
-    
+
+    // Merge Font Awesome 6 (Solid) into the SAME font so icons sit inline
+    // with text (ICON_FA_PLAY " Play"). MergeMode appends glyphs to the
+    // previous font; the FA range is the Private Use Area block.
+    static const ImWchar faRange[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+    ImFontConfig faCfg;
+    faCfg.MergeMode        = true;
+    faCfg.PixelSnapH       = true;
+    faCfg.GlyphMinAdvanceX = fontSize;                 // give icons a uniform box
+    faCfg.GlyphOffset      = ImVec2(0.0f, 2.0f);       // nudge onto the text baseline
+    io.Fonts->AddFontFromFileTTF(
+        "assets/fonts/fa-solid-900.ttf",
+        fontSize - 2.0f,                                // icons read better a touch smaller
+        &faCfg,
+        faRange);
+
     if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         auto& style = ImGui::GetStyle();
         style.WindowRounding = 0.0f;

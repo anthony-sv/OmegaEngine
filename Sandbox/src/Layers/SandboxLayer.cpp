@@ -153,4 +153,13 @@ void SandboxLayer::onRender(float alpha)
 
     // alpha (the fixed-step sub-frame fraction) drives render interpolation.
     Engine::Systems::RenderSystem::render(scene->registry(), *m_camera, alpha);
+
+    // F2 -> screenshot the window (default framebuffer, captured before swap).
+    if (Engine::Core::Input::wasKeyPressed(Engine::Core::Key::F2))
+    {
+        auto& win = Engine::Core::Application::get().window();
+        auto const path = Engine::Renderer::Screenshot::timestamped();
+        if (auto r = Engine::Renderer::Screenshot::capture(path, 0, 0, win.width(), win.height()); !r)
+            std::println(std::cerr, "[Ω::Sandbox] screenshot failed: {}", r.error().message);
+    }
 }

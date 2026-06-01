@@ -1,7 +1,8 @@
-﻿module;
+module;
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
+#include "stb_image.h"   // declarations only; STB_IMAGE_IMPLEMENTATION lives in Texture.cpp
 
 #ifdef _WIN32
 #   define WIN32_LEAN_AND_MEAN
@@ -130,7 +131,35 @@ namespace Engine::Core {
 
         std::println("[Ω::Window] created {}x{} '{}'",props.width, props.height, props.title);
 
+        // Window/taskbar icon -- convention-based asset, relative to the
+        // working directory (project root for the runtime, editor dir for
+        // the editor). Silently skipped if absent.
+        std::error_code ec;
+        if(std::filesystem::exists("assets/icon.png", ec))
+            win.setIcon("assets/icon.png");
+
         return win;
+    }
+
+    // Ω::Window/taskbar icon ──────────────────────────────────────────
+    void Window::setIcon(std::filesystem::path const& path) const {
+        if(!m_handle)
+            return;
+
+        int w = 0, h = 0, channels = 0;
+        stbi_set_flip_vertically_on_load(false);   // GLFW expects top-down rows
+        unsigned char* pixels = stbi_load(path.string().c_str(), &w, &h, &channels, 4);
+        if(!pixels) {
+            std::println(std::cerr, "[Ω::Window] icon load failed '{}': {}",
+                         path.string(), stbi_failure_reason());
+            return;
+        }
+
+        GLFWimage const image { w, h, pixels };
+        glfwSetWindowIcon(m_handle.get(), 1, &image);
+        stbi_image_free(pixels);
+
+        std::println("[Ω::Window] icon set '{}'", path.string());
     }
 
     // Ω::Move constructor
