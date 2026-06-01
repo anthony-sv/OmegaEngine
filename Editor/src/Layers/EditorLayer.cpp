@@ -163,8 +163,9 @@ namespace
     }
 }
 
-EditorLayer::EditorLayer()
-    : ILayer { "Ω::EditorLayer" }
+EditorLayer::EditorLayer(Engine::Scene::Project project)
+    : ILayer    { "Ω::EditorLayer" }
+    , m_project { std::move(project) }
 {}
 
 void EditorLayer::onAttach()
@@ -208,36 +209,43 @@ void EditorLayer::onAttach()
     }
 
     // ── ECS world ──────────────────────────────────────
-    // The viewport now renders a managed World not a loose Registry. 
-    // 
-    // The world's content is built in its onEnter hook: three quads carrying angular Velocity2D, plus a
-    // MovementSystem that spins them -- so the editor viewport visibly
-    // exercises the system model too.
-    //
-    // create(name) auto-adds a NameComponent, so these entities are
-    // already identifiable (useful once the Hierarchy panel reads the
-    // active world's registry).
-    auto& world = m_sceneManager.create("Editor");
-    world.setOnEnter([this](Engine::Scene::World& w)
+    // The editor edits a scene from the OPEN PROJECT. We open its startup
+    // scene; its entities are pure DATA loaded from the project's
+    // scenes/<name>.json in the onEnter hook below. (Switching to other
+    // scenes in the project is the next step, P3.)
+    // One world per scene the project declares (Scene menu switches them).
+    // The setup is IDEMPOTENT: it only loads + wires systems the FIRST
+    // time a world is entered (systemCount == 0). Switching away does NOT
+    // clear the world, so returning to a scene preserves your in-editor
+    // edits (re-entry skips the reload).
+    auto setup = [this](Engine::Scene::World& w)
     {
-        // Systems are engine CODE (not serialized) -- always added.
-        // They only TICK while the editor is in Play mode (see onUpdate);
-        // in Edit mode the world is static so it can be authored.
+        if (w.systemCount() > 0)
+            return;     // already loaded -- keep edits
+
+        // Systems are engine CODE (not serialized). They only TICK in Play
+        // mode (see onUpdate); Edit mode stays static for authoring.
         w.addSystem<Engine::Systems::InterpolationSystem>();   // FIRST (snapshot before movers)
         w.addSystem<Engine::Systems::MovementSystem>();
         w.addSystem<Engine::Systems::AnimationSystem>();
         w.addSystem<Engine::Physics::PhysicsSystem>(Engine::Core::Application::get().eventBus());
 
-        // Entities are pure DATA: loaded from scenes/<name>.json. No
-        // code fallback -- a scene is authored (Ctrl+S) and committed.
+        // Entities are pure DATA from the project's scenes/<name>.json.
         auto& assets    = Engine::Core::Application::get().assets();
         auto const file = "scenes/" + w.name() + ".json";
         if (auto r = Engine::Scene::SceneSerializer::load(w, file, assets); !r)
             std::println(std::cerr, "[Ω::EditorLayer] could not load '{}': {}",
                          file, r.error().message);
-    });
+    };
 
-    m_sceneManager.switchTo("Editor");
+    for (auto const& name : m_project.scenes())
+        m_sceneManager.create(name).setOnEnter(setup);
+
+    m_sceneManager.switchTo(m_project.startupScene());
+
+    logConsole("opened project '" + m_project.name() + "'  (" +
+               std::to_string(m_project.scenes().size()) + " scenes)");
+    logConsole(ICON_FA_LIST " scene -> " + m_project.startupScene());
 }
 
 void EditorLayer::onDetach()
@@ -348,6 +356,8 @@ void EditorLayer::onRender(float alpha)
                 static_cast<int>(m_framebuffer->width()),
                 static_cast<int>(m_framebuffer->height())); !r)
             std::println(std::cerr, "[Ω::EditorLayer] screenshot failed: {}", r.error().message);
+        else
+            logConsole(ICON_FA_CAMERA " screenshot -> " + path.string());
     }
 
     m_framebuffer->unbind();
@@ -401,6 +411,20 @@ void EditorLayer::onImGuiRender()
             ImGui::MenuItem("Colliders", nullptr, &m_showColliders);
             ImGui::EndMenu();
         }
+        if(ImGui::BeginMenu("Scene"))
+        {
+            // One entry per scene in the open project; the active scene is
+            // ticked. Switching is deferred to the frame boundary by the
+            // SceneManager (safe mid-frame).
+            auto const* active = m_sceneManager.active();
+            for(auto const& name : m_project.scenes())
+            {
+                bool const isActive = active && active->name() == name;
+                if(ImGui::MenuItem(name.c_str(), nullptr, isActive) && !isActive)
+                    switchScene(name);
+            }
+            ImGui::EndMenu();
+        }
 
         // Play / Stop toggle (edit vs play-in-editor). Green = will play,
         // red = currently playing (click to stop + restore).
@@ -419,11 +443,11 @@ void EditorLayer::onImGuiRender()
         ImVec2 const br = { tl.x + ImGui::GetWindowWidth(), tl.y + g_titlebarHeight };
         auto* dl = ImGui::GetWindowDrawList();
 
-        char const* title = "ΩmegaEngine Editor";
-        ImVec2 const textSize = ImGui::CalcTextSize(title);
+        std::string const title = "ΩmegaEngine Editor — " + m_project.name();
+        ImVec2 const textSize = ImGui::CalcTextSize(title.c_str());
         float  const textX = tl.x + (br.x - tl.x - textSize.x) * 0.5f;
         float  const textY = tl.y + (g_titlebarHeight - textSize.y) * 0.5f;
-        dl->AddText({ textX, textY }, IM_COL32(180, 178, 200, 255), title);
+        dl->AddText({ textX, textY }, IM_COL32(180, 178, 200, 255), title.c_str());
 
 #ifdef _WIN32
     // Ω::Window control buttons (right-aligned) ──────────────
@@ -580,21 +604,33 @@ void EditorLayer::onImGuiRender()
     if(m_showConsole)
     {
         ImGui::Begin("Console", &m_showConsole);
+
+        // ── Header: status + hotkey reference + per-frame stats ──
         ImGui::TextColored({ 0.3f, 0.9f, 0.5f, 1.0f },
                            "[Ω] OmegaEngine started successfully");
-        ImGui::TextColored({ 0.5f, 0.5f, 0.7f, 1.0f },
-                           "[Ω] Docking + Viewports enabled");
-        ImGui::TextColored({ 0.5f, 0.5f, 0.7f, 1.0f },
-                           "[Ω] Fixed timestep: 60Hz (%.2fms)", 1000.0f / 60.0f);
+        ImGui::TextColored({ 0.55f, 0.55f, 0.65f, 1.0f },
+                           ICON_FA_PLAY " Ctrl+P play/stop   "
+                           ICON_FA_FLOPPY_DISK " Ctrl+S save   "
+                           ICON_FA_FOLDER_OPEN " Ctrl+O reload   "
+                           ICON_FA_CAMERA " F2 screenshot");
 
-        // ── Batch renderer stats ────────────────────────────────
-        // Shows how many draw calls and quads were submitted this
-        // frame. With batching, 5 quads = 1 draw call (not 5).
         auto const stats = Engine::Renderer::Renderer2D::stats();
-        ImGui::Separator();
         ImGui::TextColored({ 0.5f, 0.7f, 0.9f, 1.0f },
-                           "[Ω] Draw calls: %u  |  Quads: %u",
-                           stats.drawCalls, stats.quadCount);
+                           "[Ω] Draw calls: %u  |  Quads: %u   ·   60Hz (%.2fms)",
+                           stats.drawCalls, stats.quadCount, 1000.0f / 60.0f);
+
+        // ── Scrolling action log ────────────────────────────────
+        ImGui::Separator();
+        ImGui::BeginChild("##consolelog", { 0.0f, 0.0f }, false,
+                          ImGuiWindowFlags_HorizontalScrollbar);
+        for(auto const& line : m_consoleLog)
+            ImGui::TextUnformatted(line.c_str());
+        if(m_consoleScrollToBottom)
+        {
+            ImGui::SetScrollHereY(1.0f);
+            m_consoleScrollToBottom = false;
+        }
+        ImGui::EndChild();
 
         ImGui::End();
     }
@@ -620,6 +656,8 @@ void EditorLayer::saveScene()
     auto const result = Engine::Scene::SceneSerializer::save(*world, "scenes/" + world->name() + ".json");
     if (!result)   // the serializer logs success; we only flag failures
         std::println(std::cerr, "[Ω::EditorLayer] save failed: {}", result.error().message);
+    else
+        logConsole(ICON_FA_FLOPPY_DISK " saved scene '" + world->name() + "'");
 }
 
 void EditorLayer::loadScene()
@@ -633,6 +671,8 @@ void EditorLayer::loadScene()
         *world, "scenes/" + world->name() + ".json", Engine::Core::Application::get().assets());
     if (!result)
         std::println(std::cerr, "[Ω::EditorLayer] load failed: {}", result.error().message);
+    else
+        logConsole(ICON_FA_FOLDER_OPEN " reloaded scene '" + world->name() + "'");
 }
 
 void EditorLayer::togglePlay()
@@ -654,7 +694,7 @@ void EditorLayer::togglePlay()
             return;     // don't enter Play if we couldn't capture a restore point
         }
         m_playing = true;
-        std::println("[Ω::EditorLayer] ▶ play");
+        logConsole(ICON_FA_PLAY " play  (scene '" + world->name() + "')");
     }
     else
     {
@@ -664,6 +704,28 @@ void EditorLayer::togglePlay()
         if (auto const r = Engine::Scene::SceneSerializer::load(
                 *world, snapshot, Engine::Core::Application::get().assets()); !r)
             std::println(std::cerr, "[Ω::EditorLayer] restore failed: {}", r.error().message);
-        std::println("[Ω::EditorLayer] ■ stop");
+        logConsole(ICON_FA_STOP " stop  (restored)");
     }
+}
+
+void EditorLayer::switchScene(std::string name)
+{
+    if (m_playing)          // leaving Play; restore first so we don't carry sim state
+        togglePlay();
+
+    m_selected = {};        // old scene's entities go away
+    m_sceneManager.switchTo(name);
+    logConsole(ICON_FA_LIST " scene -> " + name);
+}
+
+void EditorLayer::logConsole(std::string message)
+{
+    m_consoleLog.push_back(std::move(message));
+
+    constexpr std::size_t maxLines = 200;
+    if (m_consoleLog.size() > maxLines)
+        m_consoleLog.erase(m_consoleLog.begin(),
+                           m_consoleLog.begin() + (m_consoleLog.size() - maxLines));
+
+    m_consoleScrollToBottom = true;
 }

@@ -307,13 +307,15 @@ namespace Engine::Renderer
         s_vertexStorage.resize(MaxVertices);
 
         // ── 1. Shader ───────────────────────────────────────────
-        // Loaded through the app's AssetManager (owns + dedups). Two
-        // files, so loadKeyed with an explicit key. Returns nullptr on
-        // failure (the manager logs the specifics).
+        // The batch shader is an ENGINE resource, not project content, so
+        // it is resolved relative to the executable (Core::Paths) -- found
+        // no matter which project's directory is the cwd. Loaded through
+        // the app's AssetManager (owns + dedups); two files -> loadKeyed
+        // with an explicit key. Returns nullptr on failure (logged).
         s_batchShader = Core::Application::get().assets().loadKeyed<Shader>(
             "batch_quad",
-            "assets/shaders/batch_quad/vertex.glsl",
-            "assets/shaders/batch_quad/fragment.glsl"
+            Core::Paths::resource("Engine/resources/shaders/batch_quad/vertex.glsl"),
+            Core::Paths::resource("Engine/resources/shaders/batch_quad/fragment.glsl")
         );
         if (!s_batchShader)
             return std::unexpected(

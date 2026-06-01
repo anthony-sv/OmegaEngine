@@ -12,17 +12,18 @@
   <Folder Name="/Solution Items/projects/Sandbox/">
     <File Path="projects/Sandbox/project.json" />
   </Folder>
-  <Folder Name="/Solution Items/projects/Sandbox/assets/" />
-  <Folder Name="/Solution Items/projects/Sandbox/assets/shaders/" />
-  <Folder Name="/Solution Items/projects/Sandbox/assets/shaders/batch_quad/">
-    <File Path="projects/Sandbox/assets/shaders/batch_quad/fragment.glsl" />
-    <File Path="projects/Sandbox/assets/shaders/batch_quad/vertex.glsl" />
+  <Folder Name="/Solution Items/projects/Sandbox/assets/">
+    <File Path="projects/Sandbox/assets/icon.png" />
+  </Folder>
+  <Folder Name="/Solution Items/projects/Sandbox/assets/screenshots/">
+    <File Path="projects/Sandbox/screenshots/shot_20260601_074642.png" />
   </Folder>
   <Folder Name="/Solution Items/projects/Sandbox/assets/textures/">
     <File Path="projects/Sandbox/assets/textures/Sheet.png" />
   </Folder>
   <Folder Name="/Solution Items/projects/Sandbox/scenes/">
     <File Path="projects/Sandbox/scenes/Grid.json" />
+    <File Path="projects/Sandbox/scenes/Physics.json" />
     <File Path="projects/Sandbox/scenes/Ring.json" />
   </Folder>
   <Project Path="Editor/Editor.vcxproj" Id="90bde2b6-add6-4964-8546-561144148e1f" />

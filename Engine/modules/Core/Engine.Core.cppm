@@ -11,3 +11,4 @@ export import :AssetManager;
 export import :Layer;
 export import :LayerStack;
 export import :Error;
+export import :Paths;

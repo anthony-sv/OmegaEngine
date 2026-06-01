@@ -111,8 +111,13 @@ void ImGuiLayer::onAttach() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    io.IniFilename = "omega_editor_layout.ini";
-    
+    // Editor layout state lives next to the EXECUTABLE, not in the open
+    // project's directory (which is the cwd). Static so the pointer ImGui
+    // stores stays valid for the program's lifetime.
+    static std::string const iniPath =
+        (Engine::Core::Paths::executableDir() / "omega_editor_layout.ini").string();
+    io.IniFilename = iniPath.c_str();
+
     ImGui::StyleColorsDark();
 
     // Roomier controls: a larger base font + taller frame padding makes
@@ -130,8 +135,10 @@ void ImGuiLayer::onAttach() {
     builder.AddRanges(io.Fonts->GetGlyphRangesGreek());
     builder.BuildRanges(&ranges);
 
+    // Editor chrome fonts are exe-relative resources (NOT project content).
+    auto const baseFont = Engine::Core::Paths::resource("Editor/assets/fonts/JetBrainsMonoNL-Regular.ttf").string();
     io.Fonts->AddFontFromFileTTF(
-        "assets/fonts/JetBrainsMonoNL-Regular.ttf",
+        baseFont.c_str(),
         fontSize,
         nullptr,
         ranges.Data);
@@ -145,8 +152,9 @@ void ImGuiLayer::onAttach() {
     faCfg.PixelSnapH       = true;
     faCfg.GlyphMinAdvanceX = fontSize;                 // give icons a uniform box
     faCfg.GlyphOffset      = ImVec2(0.0f, 2.0f);       // nudge onto the text baseline
+    auto const iconFont = Engine::Core::Paths::resource("Editor/assets/fonts/fa-solid-900.ttf").string();
     io.Fonts->AddFontFromFileTTF(
-        "assets/fonts/fa-solid-900.ttf",
+        iconFont.c_str(),
         fontSize - 2.0f,                                // icons read better a touch smaller
         &faCfg,
         faRange);

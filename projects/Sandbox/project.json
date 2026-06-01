@@ -1,6 +1,6 @@
 {
   "name": "Sandbox",
-  "startupScene": "Grid",
+  "startupScene": "Physics",
   "scenes": [
     "Grid",
     "Ring",
