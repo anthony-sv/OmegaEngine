@@ -22,7 +22,7 @@ uniform mat4 u_ViewProjection;
 // gets a smooth blend of its triangle's three vertex values.
 out vec4  v_Color;
 out vec2  v_TexCoord;
-out float v_TexIndex;
+flat out float v_TexIndex;      // flat: texture slot is per-quad, must NOT be interpolated
 out float v_TilingFactor;
 
 void main()
