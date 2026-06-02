@@ -108,6 +108,10 @@ namespace Engine::Renderer
             glm::vec3 { -m_position.x, -m_position.y, 0.0f }
         );
 
+        // Cache all three: the shader uses VP; tools (ImGuizmo) read the
+        // separate view/projection.
+        m_view           = view;
+        m_projection     = projection;
         m_viewProjection = projection * view;
     }
 

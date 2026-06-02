@@ -55,9 +55,14 @@ namespace Engine::Scene
             }
             p.m_window = std::move(w);
 
-            // Default the startup scene to the first listed if unset.
-            if (p.m_startupScene.empty() && !p.m_scenes.empty())
-                p.m_startupScene = p.m_scenes.front();
+            // Default / REPAIR the startup scene. If it is unset, or points
+            // at a scene that no longer exists (e.g. it was renamed/deleted
+            // and the manifest drifted), fall back to the first listed scene
+            // so the project still opens to something valid.
+            bool const startupKnown =
+                std::ranges::find(p.m_scenes, p.m_startupScene) != p.m_scenes.end();
+            if (!startupKnown)
+                p.m_startupScene = p.m_scenes.empty() ? std::string {} : p.m_scenes.front();
 
             std::println("[Ω::Project] loaded '{}' ({} scene(s), startup '{}') <- '{}'",
                          p.m_name, p.m_scenes.size(), p.m_startupScene, file.string());
@@ -69,6 +74,38 @@ namespace Engine::Scene
                 ErrorCode::FileReadFailed,
                 std::format("error parsing '{}': {}", file.string(), ex.what())));
         }
+    }
+
+    Core::VoidResult Project::save() const
+    {
+        auto const file = m_root / "project.json";
+
+        // Rebuild the manifest from our current state. We write every
+        // field (not just changed ones) so the file is self-describing and
+        // round-trips cleanly with load().
+        json root;
+        root["name"]         = m_name;
+        root["startupScene"] = m_startupScene;
+        root["scenes"]       = m_scenes;
+        root["window"] = {
+            { "title",     m_window.title },
+            { "width",     m_window.width },
+            { "height",    m_window.height },
+            { "vsync",     m_window.vsync },
+            { "decorated", m_window.decorated },
+        };
+
+        std::ofstream out { file };
+        if (!out)
+            return std::unexpected(ErrorInfo::make(
+                ErrorCode::FileReadFailed,
+                std::format("cannot write project file '{}'", file.string())));
+
+        out << root.dump(4);    // pretty-printed, 4-space indent
+
+        std::println("[Ω::Project] saved '{}' ({} scene(s), startup '{}') -> '{}'",
+                     m_name, m_scenes.size(), m_startupScene, file.string());
+        return {};
     }
 
 } // namespace Scene

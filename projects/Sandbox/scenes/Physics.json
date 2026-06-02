@@ -1,63 +1,436 @@
 {
-  "name": "Physics",
   "entities": [
     {
-      "Name": "ECS Quad — magenta",
-      "Transform": { "position": [2.0, 0.6], "rotation": 0.0, "scale": [0.4, 0.4] },
-      "SpriteRenderer": { "color": [0.90, 0.20, 0.90, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
-      "Velocity2D": { "linear": [0.0, 0.0], "angular": 60.0 }
-    },
-    {
       "Name": "ECS Quad — cyan",
-      "Transform": { "position": [2.0, -0.1], "rotation": 0.0, "scale": [0.4, 0.4] },
-      "SpriteRenderer": { "color": [0.20, 0.90, 0.90, 0.235], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 0.5 },
-      "Velocity2D": { "linear": [0.0, 0.0], "angular": -60.0 }
+      "SpriteRenderer": {
+        "color": [
+          0.20000000298023224,
+          0.8999999761581421,
+          0.8999999761581421,
+          0.23499999940395355
+        ],
+        "texturePath": "",
+        "tilingFactor": 0.5,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          2.0,
+          -0.10000000149011612
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "Velocity2D": {
+        "angular": -60.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
     },
     {
       "Name": "ECS Quad — orange",
-      "Transform": { "position": [2.0, -0.8], "rotation": 0.0, "scale": [0.4, 0.4] },
-      "SpriteRenderer": { "color": [1.0, 0.60, 0.10, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
-      "Velocity2D": { "linear": [0.0, 0.0], "angular": 90.0 }
+      "SpriteRenderer": {
+        "color": [
+          1.0,
+          0.6000000238418579,
+          0.10000000149011612,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          2.0,
+          -0.800000011920929
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "Velocity2D": {
+        "angular": 90.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
+      }
     },
     {
       "Name": "Animated Hero",
-      "Transform": { "position": [0.0, 1.2], "rotation": 0.0, "scale": [0.7, 0.7] },
-      "SpriteRenderer": { "color": [1.0, 1.0, 1.0, 1.0], "texturePath": "assets/textures/Sheet.png", "uvMin": [0.5, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
       "SpriteAnimation": {
-        "frames": [ { "uvMin": [0.0, 0.0], "uvMax": [0.5, 1.0] }, { "uvMin": [0.5, 0.0], "uvMax": [1.0, 1.0] } ],
-        "frameDuration": 0.5, "looping": true, "playing": true
+        "frameDuration": 0.5,
+        "frames": [
+          {
+            "uvMax": [
+              0.5,
+              1.0
+            ],
+            "uvMin": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "uvMax": [
+              1.0,
+              1.0
+            ],
+            "uvMin": [
+              0.5,
+              0.0
+            ]
+          }
+        ],
+        "looping": true,
+        "playing": true
+      },
+      "SpriteRenderer": {
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texturePath": "assets/textures/Sheet.png",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.5,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          2.003316879272461,
+          1.1402984857559204
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.699999988079071,
+          0.699999988079071
+        ]
       }
     },
     {
+      "BoxCollider2D": {
+        "density": 1.0,
+        "friction": 0.6000000238418579,
+        "isTrigger": false,
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "restitution": 0.0,
+        "size": [
+          5.0,
+          0.30000001192092896
+        ]
+      },
       "Name": "Phys Floor",
-      "Transform": { "position": [0.0, -2.0], "rotation": 0.0, "scale": [5.0, 0.3] },
-      "SpriteRenderer": { "color": [0.40, 0.42, 0.48, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
-      "RigidBody2D": { "type": 0, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
-      "BoxCollider2D": { "size": [5.0, 0.3], "offset": [0.0, 0.0], "density": 1.0, "friction": 0.6, "restitution": 0.0, "isTrigger": false }
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 0
+      },
+      "SpriteRenderer": {
+        "color": [
+          0.4000000059604645,
+          0.41999998688697815,
+          0.47999998927116394,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          5.0,
+          0.30000001192092896
+        ]
+      }
     },
     {
+      "BoxCollider2D": {
+        "density": 1.0,
+        "friction": 0.30000001192092896,
+        "isTrigger": false,
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "restitution": 0.20000000298023224,
+        "size": [
+          0.5,
+          0.5
+        ]
+      },
       "Name": "Phys Box",
-      "Transform": { "position": [0.1, 1.8], "rotation": 12.0, "scale": [0.5, 0.5] },
-      "SpriteRenderer": { "color": [0.90, 0.45, 0.25, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
-      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
-      "BoxCollider2D": { "size": [0.5, 0.5], "offset": [0.0, 0.0], "density": 1.0, "friction": 0.3, "restitution": 0.2, "isTrigger": false }
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 1
+      },
+      "SpriteRenderer": {
+        "color": [
+          0.8999999761581421,
+          0.44999998807907104,
+          0.25,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.10000000149011612,
+          1.7999999523162842
+        ],
+        "rotation": 12.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      }
     },
     {
+      "CircleCollider2D": {
+        "density": 1.0,
+        "friction": 0.30000001192092896,
+        "isTrigger": false,
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "radius": 0.3499999940395355,
+        "restitution": 0.550000011920929
+      },
       "Name": "Phys Ball",
-      "Transform": { "position": [-1.1, 1.6], "rotation": 0.0, "scale": [0.7, 0.7] },
-      "SpriteRenderer": { "color": [0.35, 0.55, 0.95, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
-      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
-      "CircleCollider2D": { "radius": 0.35, "offset": [0.0, 0.0], "density": 1.0, "friction": 0.3, "restitution": 0.55, "isTrigger": false }
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 1
+      },
+      "SpriteRenderer": {
+        "color": [
+          0.3499999940395355,
+          0.550000011920929,
+          0.949999988079071,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          -0.927528977394104,
+          1.228524088859558
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.699999988079071,
+          0.699999988079071
+        ]
+      }
     },
     {
       "Name": "Phys Hexagon",
-      "Transform": { "position": [-2.2, 1.6], "rotation": 0.0, "scale": [0.9, 0.9] },
-      "SpriteRenderer": { "color": [0.70, 0.35, 0.85, 1.0], "texturePath": "", "uvMin": [0.0, 0.0], "uvMax": [1.0, 1.0], "tilingFactor": 1.0 },
-      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
       "PolygonCollider2D": {
-        "points": [ [0.45, 0.0], [0.225, 0.39], [-0.225, 0.39], [-0.45, 0.0], [-0.225, -0.39], [0.225, -0.39] ],
-        "density": 1.0, "friction": 0.4, "restitution": 0.2, "isTrigger": false
+        "density": 1.0,
+        "friction": 0.4000000059604645,
+        "isTrigger": false,
+        "points": [
+          [
+            0.44999998807907104,
+            0.0
+          ],
+          [
+            0.22499999403953552,
+            0.38999998569488525
+          ],
+          [
+            -0.22499999403953552,
+            0.38999998569488525
+          ],
+          [
+            -0.44999998807907104,
+            0.0
+          ],
+          [
+            -0.22499999403953552,
+            -0.38999998569488525
+          ],
+          [
+            0.22499999403953552,
+            -0.38999998569488525
+          ]
+        ],
+        "restitution": 0.20000000298023224
+      },
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 1
+      },
+      "SpriteRenderer": {
+        "color": [
+          0.699999988079071,
+          0.3499999940395355,
+          0.8500000238418579,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.31409621238708496,
+          -0.9538971185684204
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.8999999761581421,
+          0.8999999761581421
+        ]
+      }
+    },
+    {
+      "Name": "Elo",
+      "SpriteRenderer": {
+        "color": [
+          0.6941176652908325,
+          0.125490203499794,
+          0.125490203499794,
+          0.3490196168422699
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          -1.5507464408874512,
+          -0.5327529311180115
+        ],
+        "rotation": 1.0,
+        "scale": [
+          1.4500000476837158,
+          2.049999952316284
+        ]
+      }
+    },
+    {
+      "Name": "ECS Quad — magenta",
+      "SpriteRenderer": {
+        "color": [
+          0.8999999761581421,
+          0.20000000298023224,
+          0.8999999761581421,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          2.0,
+          0.6000000238418579
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "Velocity2D": {
+        "angular": 60.0,
+        "linear": [
+          0.0,
+          0.0
+        ]
       }
     }
-  ]
+  ],
+  "name": "Main"
 }

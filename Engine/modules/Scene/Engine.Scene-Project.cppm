@@ -70,6 +70,52 @@ namespace Engine::Scene
             return m_root / "scenes" / (sceneName + ".json");
         }
 
+
+        // -- Authoring (editor) -----------------------------------------
+        //
+        // In-memory mutation of the manifest. These DON'T touch disk --
+        // call save() to persist the changes back to project.json. (The
+        // editor pairs each mutation with a save so the on-disk manifest
+        // stays in step.)
+
+        // Append a scene if it isn't already listed. If this is the first
+        // scene, it also becomes the startup scene.
+        void addScene(std::string name)
+        {
+            if (std::ranges::find(m_scenes, name) != m_scenes.end())
+                return;
+            if (m_scenes.empty())
+                m_startupScene = name;
+            m_scenes.push_back(std::move(name));
+        }
+
+        // Drop a scene from the list. If it was the startup scene, the
+        // startup falls back to the first remaining scene (or empty).
+        void removeScene(std::string const& name)
+        {
+            std::erase(m_scenes, name);
+            if (m_startupScene == name)
+                m_startupScene = m_scenes.empty() ? std::string {} : m_scenes.front();
+        }
+
+        // Rename a scene in place (keeps its list position). Updates the
+        // startup pointer if it referenced the old name. (The scene FILE
+        // on disk is moved by the caller -- this only touches the manifest.)
+        void renameScene(std::string const& from, std::string const& to)
+        {
+            if (auto it = std::ranges::find(m_scenes, from); it != m_scenes.end())
+                *it = to;
+            if (m_startupScene == from)
+                m_startupScene = to;
+        }
+
+        void setStartupScene(std::string name) { m_startupScene = std::move(name); }
+
+        // Persist the current manifest back to <root>/project.json.
+        // (nlohmann is confined to the .cpp, so this is declared here and
+        // defined there -- consumers never see the JSON library.)
+        [[nodiscard]] Core::VoidResult save() const;
+
     private:
         std::filesystem::path    m_root;          // the project folder
         std::string              m_name;

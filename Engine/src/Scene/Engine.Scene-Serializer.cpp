@@ -190,9 +190,17 @@ namespace Engine::Scene
             in >> root;
 
             // Replace entities; keep the world's systems.
+            //
+            // We deliberately do NOT apply root["name"]. A world's name is
+            // its IDENTITY -- the SceneManager key, which is also the scene
+            // FILENAME (scenes/<name>.json). It is assigned when the world is
+            // created and must stay authoritative. Honoring a stale "name"
+            // baked into the file would let a RENAMED scene (file moved, key
+            // changed, but the old name still inside the JSON) silently
+            // revert its world name -- and with it the save path, the
+            // hierarchy label, and the "set as startup" target. The filename
+            // is the single source of truth; the field stays informational.
             world.clearEntities();
-            if (root.contains("name"))
-                world.setName(root["name"].get<std::string>());
 
             for (auto const& je : root.value("entities", json::array()))
             {

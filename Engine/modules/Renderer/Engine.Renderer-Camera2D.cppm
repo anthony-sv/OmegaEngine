@@ -76,8 +76,14 @@ namespace Engine::Renderer
         // as u_ViewProjection once per frame before drawing.
         [[nodiscard]] glm::mat4 const& viewProjection() const { return m_viewProjection; }
 
+        // The View and Projection matrices SEPARATELY. The shader only ever
+        // needs the combined VP, but tools that expect them split -- notably
+        // ImGuizmo -- read these. (Cached alongside VP in recalculate().)
+        [[nodiscard]] glm::mat4 const& view()       const { return m_view; }
+        [[nodiscard]] glm::mat4 const& projection() const { return m_projection; }
+
     private:
-        // Recomputes m_viewProjection from the current parameters.
+        // Recomputes the cached matrices from the current parameters.
         void recalculate();
 
         glm::vec2 m_position    { 0.0f, 0.0f };
@@ -86,6 +92,8 @@ namespace Engine::Renderer
         float m_size            { 1.0f };           // vertical half-extent (world units)
         float m_aspectRatio     { 16.0f / 9.0f };
 
+        glm::mat4 m_view           { 1.0f };
+        glm::mat4 m_projection     { 1.0f };
         glm::mat4 m_viewProjection { 1.0f };
 
     }; // class Camera2D

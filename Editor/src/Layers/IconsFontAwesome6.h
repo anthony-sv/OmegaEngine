@@ -32,3 +32,8 @@
 #define ICON_FA_LIST             "\xef\x80\xba"   // U+F03A  hierarchy
 #define ICON_FA_CIRCLE_INFO      "\xef\x81\x9a"   // U+F05A  inspector / info
 #define ICON_FA_TERMINAL         "\xef\x84\xa0"   // U+F120  console
+#define ICON_FA_PLUS             "\xef\x81\xa7"   // U+F067  add / new
+#define ICON_FA_CLONE            "\xef\x89\x8d"   // U+F24D  duplicate
+#define ICON_FA_PEN              "\xef\x8c\x84"   // U+F304  rename / edit
+#define ICON_FA_STAR             "\xef\x80\x85"   // U+F005  startup scene
+#define ICON_FA_TRASH            "\xef\x87\xb8"   // U+F1F8  delete

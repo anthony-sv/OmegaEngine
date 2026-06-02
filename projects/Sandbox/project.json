@@ -1,16 +1,16 @@
 {
-  "name": "Sandbox",
-  "startupScene": "Physics",
-  "scenes": [
-    "Grid",
-    "Ring",
-    "Physics"
-  ],
-  "window": {
-    "title": "ΩmegaEngine — Sandbox",
-    "width": 1280,
-    "height": 720,
-    "vsync": true,
-    "decorated": true
-  }
+    "name": "Sandbox",
+    "scenes": [
+        "Grid",
+        "Ring",
+        "Physics"
+    ],
+    "startupScene": "Physics",
+    "window": {
+        "decorated": true,
+        "height": 720,
+        "title": "ΩmegaEngine — Sandbox",
+        "vsync": true,
+        "width": 1280
+    }
 }

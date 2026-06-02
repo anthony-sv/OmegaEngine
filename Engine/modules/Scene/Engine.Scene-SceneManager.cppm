@@ -104,6 +104,26 @@ namespace Engine::Scene
             m_pending = std::move(name);
         }
 
+        // Destroy a named world (editor: delete/rename scene). If it is the
+        // ACTIVE world it is exited first and the active pointer is
+        // cleared -- so the caller must switchTo() another scene first and
+        // only remove once that switch has applied (otherwise active()
+        // becomes null until the next switch). Returns true if removed.
+        bool remove(std::string const& name)
+        {
+            auto it = m_worlds.find(name);
+            if (it == m_worlds.end())
+                return false;
+
+            if (m_active == it->second.get())
+            {
+                m_active->exit();
+                m_active = nullptr;
+            }
+            m_worlds.erase(it);
+            return true;
+        }
+
         // The currently active world, or nullptr if none is active yet
         // (e.g. before the first onUpdate applies the initial switchTo).
         [[nodiscard]] World*       active()       { return m_active; }
