@@ -133,6 +133,19 @@ namespace Engine::Physics
         void createCircleBody (EntityId id, BodyDef const&, ShapeDef const&, float radius,       glm::vec2 offset);
         void createPolygonBody(EntityId id, BodyDef const&, ShapeDef const&, std::span<glm::vec2 const> points);
 
+        // One box of a multi-fixture body: half-extents + local centre.
+        struct BoxShape
+        {
+            glm::vec2 halfSize { 0.5f, 0.5f };
+            glm::vec2 center   { 0.0f, 0.0f };
+		}; // struct BoxShape
+
+        // A single STATIC body carrying MANY box fixtures, used for tilemap
+        // collision: one body for the whole grid, one box per solid cell.
+        // Far cheaper than a body per cell. `position` is the body origin
+        // (the tilemap's grid origin); each box centre is relative to it.
+        void createStaticBoxesBody(EntityId id, glm::vec2 position, ShapeDef const&, std::span<BoxShape const> boxes);
+
         void destroyBody(EntityId id);
         [[nodiscard]] bool hasBody(EntityId id) const;
 

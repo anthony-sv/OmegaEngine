@@ -121,14 +121,57 @@ namespace Engine::Physics
             // else: no collider -> no body (a physics body needs a shape).
         }
 
-        // 2. Destroy bodies whose entity or RigidBody2D disappeared
-        //    (collect first -- can't mutate the body map mid-iteration).
+        // 1b. Build a single STATIC body for every tilemap with solid tiles:
+        //     one box fixture per solid cell (multi-cell tiles cover their
+        //     whole footprint). Built once -- a tilemap's collision is fixed
+        //     while playing, so we skip it once the body exists.
+        for (auto&& [e, tf, map] : m_registry.view<ECS::Transform, ECS::TilemapComponent>().each())
+        {
+            if (map.solidTiles.empty())
+                continue;
+
+            auto const id = static_cast<PhysicsWorld::EntityId>(e);
+            if (m_world.hasBody(id))
+                continue;
+
+            float const ts = map.tileWorldSize;
+            float const h  = ts * 0.5f;
+
+            std::vector<PhysicsWorld::BoxShape> boxes;
+            for (int y = 0; y < map.dimensions.y; ++y)
+                for (int x = 0; x < map.dimensions.x; ++x)
+                {
+                    int const tid = map.at(x, y);
+                    if (tid < 0 || !map.isSolid(tid))
+                        continue;
+
+                    // A box covering the tile's footprint, centred over the
+                    // cells it occupies (relative to the grid origin).
+                    glm::ivec2 const fp = map.footprintOf(tid);
+                    boxes.push_back({
+                        glm::vec2 { static_cast<float>(fp.x) * h, static_cast<float>(fp.y) * h },
+                        glm::vec2 { (static_cast<float>(x) + static_cast<float>(fp.x) * 0.5f) * ts,
+                                    (static_cast<float>(y) + static_cast<float>(fp.y) * 0.5f) * ts }
+                    });
+                }
+
+            if (!boxes.empty())
+            {
+                m_world.createStaticBoxesBody(id, tf.position, PhysicsWorld::ShapeDef {}, boxes);
+                std::println("[Ω::Physics] tilemap collider built: {} solid cell(s)", boxes.size());
+            }
+        }
+
+        // 2. Destroy bodies whose backing entity disappeared (collect first
+        //    -- can't mutate the body map mid-iteration). A body is kept if
+        //    its entity is alive and still owns a RigidBody2D OR a tilemap.
         std::vector<PhysicsWorld::EntityId> stale;
         m_world.eachBody(
             [&](PhysicsWorld::EntityId id, glm::vec2, float)
             {
                 auto ent = m_registry.entityFromId(id);
-                if (!ent.valid() || !ent.has<ECS::RigidBody2D>())
+                if (!ent.valid()
+                    || (!ent.has<ECS::RigidBody2D>() && !ent.has<ECS::TilemapComponent>()))
                     stale.push_back(id);
             }
         );

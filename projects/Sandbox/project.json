@@ -4,9 +4,10 @@
         "Grid",
         "Ring",
         "Physics",
-        "Tilemap"
+        "Tilemap",
+        "TilePhysics"
     ],
-    "startupScene": "Tilemap",
+    "startupScene": "TilePhysics",
     "window": {
         "decorated": true,
         "height": 720,

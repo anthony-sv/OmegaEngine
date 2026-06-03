@@ -113,6 +113,27 @@ namespace Engine::Physics
         m_impl->bodies[id] = body;
     }
 
+    void PhysicsWorld::createStaticBoxesBody(EntityId id, glm::vec2 position, ShapeDef const& sd,
+                                             std::span<BoxShape const> boxes)
+    {
+        if (boxes.empty())
+            return;
+
+        BodyDef bd;
+        bd.type     = BodyType::Static;
+        bd.position = position;
+
+        b2BodyId   body  = createBodyRaw(m_impl->world, id, bd);
+        b2ShapeDef shape = makeShapeDef(sd);
+
+        for (auto const& b : boxes)
+        {
+            b2Polygon box = b2MakeOffsetBox(b.halfSize.x, b.halfSize.y, toB2(b.center), b2MakeRot(0.0f));
+            b2CreatePolygonShape(body, &shape, &box);
+        }
+        m_impl->bodies[id] = body;
+    }
+
     void PhysicsWorld::createCircleBody(
         EntityId id, 
         BodyDef const& bd, 

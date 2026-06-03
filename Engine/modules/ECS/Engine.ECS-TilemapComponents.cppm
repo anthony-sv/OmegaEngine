@@ -163,6 +163,16 @@ namespace Engine::ECS
             return id >= 0
                 && std::ranges::find(solidTiles, id) != solidTiles.end();
         }
+
+        // How many cells tile `id` occupies. Collection tiles carry a
+        // footprint; Atlas tiles are always one cell.
+        [[nodiscard]] glm::ivec2 footprintOf(int id) const
+        {
+            if (source == Source::Collection
+                && id >= 0 && static_cast<std::size_t>(id) < tileDefs.size())
+                return tileDefs[id].footprint;
+            return { 1, 1 };
+        }
     }; // struct TilemapComponent
 
 } // namespace ECS
