@@ -1,0 +1,62 @@
+{
+  "entities": [
+    {
+      "Name": "Atlas Map",
+      "Transform": {
+        "position": [-3.4, -1.5],
+        "rotation": 0.0,
+        "scale": [1.0, 1.0]
+      },
+      "Tilemap": {
+        "source": "atlas",
+        "atlasPath": "assets/textures/tileset.png",
+        "tilePixelSize": [64, 64],
+        "tileDefs": [],
+        "tileWorldSize": 0.5,
+        "dimensions": [6, 6],
+        "tiles": [
+           0,  1,  2,  3,  4,  5,
+           6,  7,  8,  9, 10, 11,
+          12, 13, 14, 15,  0,  1,
+           2,  3,  4,  5,  6,  7,
+           8,  9, 10, 11, 12, 13,
+          14, 15,  0,  1,  2,  3
+        ],
+        "solidTiles": []
+      }
+    },
+    {
+      "Name": "Collection Map",
+      "Transform": {
+        "position": [0.3, -1.5],
+        "rotation": 0.0,
+        "scale": [1.0, 1.0]
+      },
+      "Tilemap": {
+        "source": "collection",
+        "atlasPath": "",
+        "tilePixelSize": [64, 64],
+        "tileWorldSize": 0.4,
+        "dimensions": [7, 6],
+        "tileDefs": [
+          { "texturePath": "assets/textures/tile_grass.png", "footprint": [1, 1] },
+          { "texturePath": "assets/textures/tile_dirt.png",  "footprint": [1, 1] },
+          { "texturePath": "assets/textures/tile_water.png", "footprint": [1, 1] },
+          { "texturePath": "assets/textures/cloud.png",      "footprint": [2, 1] },
+          { "texturePath": "assets/textures/tree.png",       "footprint": [2, 2] },
+          { "texturePath": "assets/textures/tileset.png", "footprint": [1, 1], "uvMin": [0.25, 0.5], "uvMax": [0.5, 0.75] }
+        ],
+        "tiles": [
+           1,  1,  1,  1,  1,  1,  1,
+           0,  0,  0,  0,  0,  0,  0,
+          -1,  2,  2, -1, -1,  5, -1,
+          -1, -1, -1, -1,  3, -1, -1,
+          -1,  4, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1
+        ],
+        "solidTiles": []
+      }
+    }
+  ],
+  "name": "Tilemap"
+}

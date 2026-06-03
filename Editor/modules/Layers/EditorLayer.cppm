@@ -68,6 +68,7 @@ private:
     bool m_showHierarchy { true };
     bool m_showConsole   { true };
     bool m_showColliders { true };   // collider wireframe overlay (authoring aid)
+    bool m_showGrid      { true };   // tilemap cell-grid overlay (authoring aid)
 
     // Console panel log (hotkey actions, scene switches, ...). Capped.
     std::vector<std::string> m_consoleLog;

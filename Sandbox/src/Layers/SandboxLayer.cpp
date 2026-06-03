@@ -151,6 +151,9 @@ void SandboxLayer::onRender(float alpha)
     if (!scene || !m_camera)
         return;
 
+    // Tilemaps are the background layer -- drawn first, sprites on top.
+    Engine::Systems::RenderSystem::renderTilemaps(scene->registry(), *m_camera);
+
     // alpha (the fixed-step sub-frame fraction) drives render interpolation.
     Engine::Systems::RenderSystem::render(scene->registry(), *m_camera, alpha);
 

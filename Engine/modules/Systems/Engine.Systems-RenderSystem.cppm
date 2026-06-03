@@ -102,6 +102,58 @@ namespace Engine::Systems
             Renderer::Renderer2D::endBatch();
         }
 
+        // Draw every TilemapComponent's non-empty cells, as seen through
+        // `camera`. Tilemaps are the BACKGROUND layer, so call this BEFORE
+        // render() -- sprites then draw on top. Wraps its own batch pass.
+        // (No interpolation: tilemaps don't move per-frame.)
+        static void renderTilemaps(ECS::Registry& registry, Renderer::Camera2D const& camera)
+        {
+            Renderer::Renderer2D::beginBatch(camera);
+
+            for (auto&& [entity, transform, map] :
+                 registry.view<ECS::Transform, ECS::TilemapComponent>().each())
+            {
+                if (registry.hasComponent<ECS::Disabled>(entity))
+                    continue;
+                drawTilemap(transform, map);
+            }
+
+            Renderer::Renderer2D::endBatch();
+        }
+
+        // Draw the CELL GRID of every tilemap as faint thin lines -- an
+        // editor authoring aid so you can see where cells fall. Call after
+        // renderTilemaps, into the same target. (Editor overlay; the runtime
+        // doesn't draw it.)
+        static void renderTilemapGrid(ECS::Registry& registry, Renderer::Camera2D const& camera)
+        {
+            constexpr glm::vec4 line  { 1.0f, 1.0f, 1.0f, 0.22f };
+            constexpr float     thick = 0.012f;
+
+            Renderer::Renderer2D::beginBatch(camera);
+
+            for (auto&& [entity, transform, map] :
+                 registry.view<ECS::Transform, ECS::TilemapComponent>().each())
+            {
+                float     const ts   = map.tileWorldSize;
+                glm::vec2 const o    = transform.position;        // grid origin (bottom-left)
+                glm::vec2 const span { map.dimensions.x * ts, map.dimensions.y * ts };
+
+                for (int x = 0; x <= map.dimensions.x; ++x)       // vertical lines
+                {
+                    float const px = o.x + static_cast<float>(x) * ts;
+                    drawLine({ px, o.y }, { px, o.y + span.y }, thick, line);
+                }
+                for (int y = 0; y <= map.dimensions.y; ++y)       // horizontal lines
+                {
+                    float const py = o.y + static_cast<float>(y) * ts;
+                    drawLine({ o.x, py }, { o.x + span.x, py }, thick, line);
+                }
+            }
+
+            Renderer::Renderer2D::endBatch();
+        }
+
         // Draw a WIREFRAME overlay of every collider (box/circle/polygon)
         // as seen through `camera`. Reads the ECS collider COMPONENTS, not
         // Box2D bodies, so it works in the editor's Edit mode too (where
@@ -253,6 +305,81 @@ namespace Engine::Systems
                         transform.scale, 
                         sprite.color
                     );
+            }
+        }
+
+        // Draw one tilemap: one quad per non-empty cell. Branches on the
+        // map's source mode (Atlas = slice one texture; Collection = one
+        // whole texture per tile id). `position` is the grid ORIGIN and
+        // drawQuad takes the bottom-left, so cell (x,y) sits at
+        // position + (x,y)*tileWorldSize.
+        static void drawTilemap(ECS::Transform const& transform, ECS::TilemapComponent const& map)
+        {
+            using Source = ECS::TilemapComponent::Source;
+
+            if (map.tiles.size() != map.cellCount())
+                return;     // grid not sized yet -- nothing safe to draw
+
+            float const ts = map.tileWorldSize;
+            auto const  g  = map.tilesView();   // 2D [y, x] view over the flat grid
+
+            // -- Atlas: precompute the slicing constants once --------------
+            int       columns   = 1;
+            glm::vec2 halfTexel  { 0.0f, 0.0f };
+            if (map.source == Source::Atlas)
+            {
+                if (map.atlas == nullptr || map.tilePixelSize.x <= 0 || map.tilePixelSize.y <= 0)
+                    return;
+                columns   = std::max(1, static_cast<int>(map.atlas->width()) / map.tilePixelSize.x);
+                halfTexel = 0.5f / glm::vec2 {
+                    static_cast<float>(map.atlas->width()),
+                    static_cast<float>(map.atlas->height())
+                };
+            }
+
+            for (int y = 0; y < map.dimensions.y; ++y)
+            {
+                for (int x = 0; x < map.dimensions.x; ++x)
+                {
+                    int const id = g[static_cast<std::size_t>(y), static_cast<std::size_t>(x)];
+                    if (id < 0)
+                        continue;
+
+                    glm::vec2 const cellBL = transform.position
+                        + glm::vec2 { static_cast<float>(x), static_cast<float>(y) } * ts;
+
+                    if (map.source == Source::Atlas)
+                    {
+                        // Slice the atlas cell; half-texel inset avoids bleed.
+                        auto const sub = Renderer::SubTexture2D::createFromGrid(
+                            *map.atlas,
+                            glm::vec2 { static_cast<float>(id % columns), static_cast<float>(id / columns) },
+                            glm::vec2 {
+                                static_cast<float>(map.tilePixelSize.x),
+                                static_cast<float>(map.tilePixelSize.y)
+                            });
+                        Renderer::SubTexture2D const inset {
+                            *map.atlas, sub.uvMin() + halfTexel, sub.uvMax() - halfTexel
+                        };
+                        Renderer::Renderer2D::drawQuad(cellBL, { ts, ts }, inset);
+                    }
+                    else // Source::Collection -- a tile DEF (texture + uv + footprint)
+                    {
+                        if (static_cast<std::size_t>(id) >= map.tileDefs.size())
+                            continue;
+                        auto const& def = map.tileDefs[id];
+                        if (def.texture == nullptr)
+                            continue;
+
+                        // Span the footprint in cells; anchored bottom-left.
+                        glm::vec2 const size {
+                            static_cast<float>(std::max(1, def.footprint.x)) * ts,
+                            static_cast<float>(std::max(1, def.footprint.y)) * ts
+                        };
+                        Renderer::SubTexture2D const sub { *def.texture, def.uvMin, def.uvMax };
+                        Renderer::Renderer2D::drawQuad(cellBL, size, sub);
+                    }
+                }
             }
         }
 

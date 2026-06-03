@@ -3,9 +3,10 @@
     "scenes": [
         "Grid",
         "Ring",
-        "Physics"
+        "Physics",
+        "Tilemap"
     ],
-    "startupScene": "Physics",
+    "startupScene": "Tilemap",
     "window": {
         "decorated": true,
         "height": 720,

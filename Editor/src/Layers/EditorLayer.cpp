@@ -385,6 +385,13 @@ void EditorLayer::onRender(float alpha)
     // same off-screen target as the demo batch.
     if (auto* world = m_sceneManager.active())
     {
+        // Tilemaps are the background layer -- drawn first, sprites on top.
+        Engine::Systems::RenderSystem::renderTilemaps(world->registry(), *m_camera);
+
+        // Cell-grid overlay (authoring aid), over the tiles, under sprites.
+        if (m_showGrid)
+            Engine::Systems::RenderSystem::renderTilemapGrid(world->registry(), *m_camera);
+
         Engine::Systems::RenderSystem::render(world->registry(), *m_camera, alpha);
 
         // Collider wireframe overlay (authoring aid). Drawn after the
@@ -464,6 +471,7 @@ void EditorLayer::onImGuiRender()
             ImGui::MenuItem("Console", nullptr, &m_showConsole);
             ImGui::Separator();
             ImGui::MenuItem("Colliders", nullptr, &m_showColliders);
+            ImGui::MenuItem("Tilemap Grid", nullptr, &m_showGrid);
             ImGui::EndMenu();
         }
         if(ImGui::BeginMenu("Scene"))

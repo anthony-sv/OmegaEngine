@@ -151,6 +151,33 @@ namespace Engine::Scene
                 };
             }
 
+            if (e.has<TilemapComponent>())
+            {
+                auto const& m = e.get<TilemapComponent>();
+
+                // Collection tile definitions ({texture, uv, footprint}).
+                json defs = json::array();
+                for (auto const& d : m.tileDefs)
+                    defs.push_back({
+                        { "texturePath", d.texturePath },
+                        { "uvMin",       toJson(d.uvMin) },
+                        { "uvMax",       toJson(d.uvMax) },
+                        { "footprint",   json::array({ d.footprint.x, d.footprint.y }) },
+                    });
+
+                je["Tilemap"] = {
+                    { "source",        m.source == TilemapComponent::Source::Collection
+                                           ? "collection" : "atlas" },
+                    { "atlasPath",     m.atlasPath },                  // Atlas mode
+                    { "tilePixelSize", json::array({ m.tilePixelSize.x, m.tilePixelSize.y }) },
+                    { "tileDefs",      defs },                         // Collection mode
+                    { "tileWorldSize", m.tileWorldSize },
+                    { "dimensions",    json::array({ m.dimensions.x, m.dimensions.y }) },
+                    { "tiles",         m.tiles },                      // flat int grid, -1 = empty
+                    { "solidTiles",    m.solidTiles },
+                };
+            }
+
             entities.push_back(std::move(je));
         });
 
@@ -252,6 +279,50 @@ namespace Engine::Scene
                 anim.looping       = ja.value("looping", true);
                 anim.playing       = ja.value("playing", true);
                 e.add<SpriteAnimation>(std::move(anim));
+            }
+
+            if (je.contains("Tilemap"))
+            {
+                auto const& jm = je["Tilemap"];
+                TilemapComponent m;
+                m.source = (jm.value("source", std::string { "atlas" }) == "collection")
+                         ? TilemapComponent::Source::Collection
+                         : TilemapComponent::Source::Atlas;
+                m.atlasPath     = jm.value("atlasPath", std::string {});
+                m.tileWorldSize = jm.value("tileWorldSize", 1.0f);
+
+                if (auto const tp = jm.value("tilePixelSize", json::array({ 64, 64 })); tp.size() == 2)
+                    m.tilePixelSize = { tp.at(0).get<int>(), tp.at(1).get<int>() };
+                if (auto const d = jm.value("dimensions", json::array({ 20, 15 })); d.size() == 2)
+                    m.dimensions = { d.at(0).get<int>(), d.at(1).get<int>() };
+
+                m.tiles      = jm.value("tiles",      std::vector<int> {});
+                m.solidTiles = jm.value("solidTiles", std::vector<int> {});
+
+                // Keep the grid consistent with its dimensions (pad with
+                // empty / truncate) so renderer + editor can trust at().
+                m.tiles.resize(m.cellCount(), -1);
+
+                // Atlas texture (one sliced image).
+                if (m.source == TilemapComponent::Source::Atlas && !m.atlasPath.empty())
+                    m.atlas = assets.load<Renderer::Texture2D>(m.atlasPath);
+
+                // Collection tile definitions ({texture, uv, footprint}),
+                // each resolved to a live texture like sprites.
+                for (auto const& jd : jm.value("tileDefs", json::array()))
+                {
+                    TilemapComponent::TileDef d;
+                    d.texturePath = jd.value("texturePath", std::string {});
+                    if (jd.contains("uvMin")) d.uvMin = vec2From(jd["uvMin"]);
+                    if (jd.contains("uvMax")) d.uvMax = vec2From(jd["uvMax"]);
+                    if (auto const fp = jd.value("footprint", json::array({ 1, 1 })); fp.size() == 2)
+                        d.footprint = { fp.at(0).get<int>(), fp.at(1).get<int>() };
+                    if (!d.texturePath.empty())
+                        d.texture = assets.load<Renderer::Texture2D>(d.texturePath);
+                    m.tileDefs.push_back(std::move(d));
+                }
+
+                e.add<TilemapComponent>(std::move(m));
             }
 
             if (je.contains("RigidBody2D"))
