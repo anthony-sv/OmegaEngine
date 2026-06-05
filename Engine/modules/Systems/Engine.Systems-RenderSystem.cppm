@@ -108,16 +108,21 @@ namespace Engine::Systems
         // (No interpolation: tilemaps don't move per-frame.)
         static void renderTilemaps(ECS::Registry& registry, Renderer::Camera2D const& camera)
         {
-            Renderer::Renderer2D::beginBatch(camera);
-
+            // Collect the visible tilemaps, then draw them back-to-front by
+            // ascending zIndex -- within one batch, draw order IS overlap
+            // order, so a lower-z "layer" sits behind a higher-z one.
+            struct Layer { ECS::Transform const* t; ECS::TilemapComponent const* m; };
+            std::vector<Layer> layers;
             for (auto&& [entity, transform, map] :
                  registry.view<ECS::Transform, ECS::TilemapComponent>().each())
-            {
-                if (registry.hasComponent<ECS::Disabled>(entity))
-                    continue;
-                drawTilemap(transform, map);
-            }
+                if (map.visible && !registry.hasComponent<ECS::Disabled>(entity))
+                    layers.push_back({ &transform, &map });
 
+            std::ranges::sort(layers, [](Layer a, Layer b) { return a.m->zIndex < b.m->zIndex; });
+
+            Renderer::Renderer2D::beginBatch(camera);
+            for (auto const& l : layers)
+                drawTilemap(*l.t, *l.m);
             Renderer::Renderer2D::endBatch();
         }
 
@@ -320,8 +325,9 @@ namespace Engine::Systems
             if (map.tiles.size() != map.cellCount())
                 return;     // grid not sized yet -- nothing safe to draw
 
-            float const ts = map.tileWorldSize;
-            auto const  g  = map.tilesView();   // 2D [y, x] view over the flat grid
+            float     const ts   = map.tileWorldSize;
+            glm::vec4 const tint { 1.0f, 1.0f, 1.0f, map.opacity };   // layer transparency
+            auto      const g    = map.tilesView();   // 2D [y, x] view over the flat grid
 
             // -- Atlas: precompute the slicing constants once --------------
             int       columns   = 1;
@@ -361,7 +367,7 @@ namespace Engine::Systems
                         Renderer::SubTexture2D const inset {
                             *map.atlas, sub.uvMin() + halfTexel, sub.uvMax() - halfTexel
                         };
-                        Renderer::Renderer2D::drawQuad(cellBL, { ts, ts }, inset);
+                        Renderer::Renderer2D::drawQuad(cellBL, { ts, ts }, inset, tint);
                     }
                     else // Source::Collection -- a tile DEF (texture + uv + footprint)
                     {
@@ -377,7 +383,7 @@ namespace Engine::Systems
                             static_cast<float>(std::max(1, def.footprint.y)) * ts
                         };
                         Renderer::SubTexture2D const sub { *def.texture, def.uvMin, def.uvMax };
-                        Renderer::Renderer2D::drawQuad(cellBL, size, sub);
+                        Renderer::Renderer2D::drawQuad(cellBL, size, sub, tint);
                     }
                 }
             }

@@ -175,6 +175,9 @@ namespace Engine::Scene
                     { "dimensions",    json::array({ m.dimensions.x, m.dimensions.y }) },
                     { "tiles",         m.tiles },                      // flat int grid, -1 = empty
                     { "solidTiles",    m.solidTiles },
+                    { "zIndex",        m.zIndex },
+                    { "opacity",       m.opacity },
+                    { "visible",       m.visible },
                 };
             }
 
@@ -298,6 +301,9 @@ namespace Engine::Scene
 
                 m.tiles      = jm.value("tiles",      std::vector<int> {});
                 m.solidTiles = jm.value("solidTiles", std::vector<int> {});
+                m.zIndex     = jm.value("zIndex", 0);
+                m.opacity    = jm.value("opacity", 1.0f);
+                m.visible    = jm.value("visible", true);
 
                 // Keep the grid consistent with its dimensions (pad with
                 // empty / truncate) so renderer + editor can trust at().

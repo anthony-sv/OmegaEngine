@@ -100,6 +100,15 @@ namespace Engine::ECS
         std::vector<int> tiles {};                 // row-major; -1 empty, >=0 tile id
         std::vector<int> solidTiles {};            // tile ids treated as solid
 
+        // -- Layering -----------------------------------------------------
+        // Tilemaps render back-to-front by ascending zIndex (a "layer"
+        // is just a tilemap entity). opacity tints every tile's alpha, so
+        // a background layer can sit faded behind the foreground. visible
+        // hides the layer without deleting it.
+        int   zIndex  { 0 };
+        float opacity { 1.0f };
+        bool  visible { true };
+
         // -- Helpers ------------------------------------------------------
 
         // Cells the grid should hold for its current dimensions.

@@ -623,6 +623,7 @@ void EditorLayer::onImGuiRender()
             ImGui::MenuItem("Hierarchy", nullptr, &m_showHierarchy);
             ImGui::MenuItem("Console", nullptr, &m_showConsole);
             ImGui::MenuItem("Tile Palette", nullptr, &m_showPalette);
+            ImGui::MenuItem("Tilemap Layers", nullptr, &m_showLayers);
             ImGui::Separator();
             ImGui::MenuItem("Colliders", nullptr, &m_showColliders);
             ImGui::MenuItem("Tilemap Grid", nullptr, &m_showGrid);
@@ -1022,6 +1023,9 @@ void EditorLayer::onImGuiRender()
 
     if (m_showPalette)
         drawTilePalette();
+
+    if (m_showLayers)
+        drawLayersPanel();
 
     // ── Scene name modals (New / Rename) ───────────────────
     // Opened here (outside the menu) from the request flags set above.
@@ -1503,7 +1507,7 @@ void EditorLayer::paintViewport(float imgMinX, float imgMinY, float imgMaxX, flo
                 std::min(m_rectAnchorX, cellX),
                 std::min(m_rectAnchorY, cellY),
                 std::max(m_rectAnchorX, cellX) + 1,
-                std::max(m_re   ctAnchorY, cellY) + 1
+                std::max(m_rectAnchorY, cellY) + 1
             );
             draw->AddRectFilled(a, b, IM_COL32(80, 160, 255, 50));
             draw->AddRect(a, b, IM_COL32(120, 190, 255, 230), 0.0f, 0, 2.0f);
@@ -1548,6 +1552,75 @@ void EditorLayer::redoTilePaint()
         map.tiles = std::move(edit.tiles);
         logConsole("redo tile edit");
     }
+}
+
+void EditorLayer::drawLayersPanel()
+{
+    using Engine::ECS::TilemapComponent;
+    using Engine::ECS::NameComponent;
+
+    ImGui::Begin("Tilemap Layers", &m_showLayers);
+
+    auto* world = m_sceneManager.active();
+    if (!world)
+    {
+        ImGui::TextDisabled("(no active scene)");
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::SmallButton(ICON_FA_PLUS " Layer"))
+        createTilemapEntity();
+    ImGui::Separator();
+
+    // Collect tilemap entities and list them TOP-first (descending z), so
+    // the panel order matches the visual stack (foreground on top).
+    std::vector<Engine::ECS::Entity> layers;
+    world->registry().eachEntity([&](Engine::ECS::Entity e)
+    {
+        if (e.has<TilemapComponent>())
+            layers.push_back(e);
+    });
+    std::ranges::sort(layers, [](Engine::ECS::Entity a, Engine::ECS::Entity b)
+    {
+        return a.get<TilemapComponent>().zIndex > b.get<TilemapComponent>().zIndex;
+    });
+
+    if (layers.empty())
+        ImGui::TextDisabled("No tilemaps yet.");
+
+    int index = 0;
+    for (auto e : layers)
+    {
+        ImGui::PushID(index++);
+        auto& map = e.get<TilemapComponent>();
+
+        // Visibility (hides the layer from rendering without deleting it).
+        ImGui::Checkbox("##vis", &map.visible);
+        ImGui::SameLine();
+
+        // Name -> selects the layer (so the palette/inspector target it).
+        std::string const name = e.has<NameComponent>()
+            ? e.get<NameComponent>().name : std::string { "Tilemap" };
+        if (ImGui::Selectable(name.c_str(), e == m_selected, 0, { 120.0f, 0.0f }))
+            m_selected = e;
+
+        // z reorder + value.
+        ImGui::SameLine();
+        if (ImGui::SmallButton("^")) ++map.zIndex;
+        ImGui::SameLine();
+        if (ImGui::SmallButton("v")) --map.zIndex;
+        ImGui::SameLine();
+        ImGui::Text("z%d", map.zIndex);
+
+        // Opacity.
+        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::SliderFloat("##op", &map.opacity, 0.0f, 1.0f, "opacity %.2f");
+
+        ImGui::PopID();
+    }
+
+    ImGui::End();
 }
 
 void EditorLayer::deleteSelected()
