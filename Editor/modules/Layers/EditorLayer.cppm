@@ -42,8 +42,24 @@ private:
     // Create / delete / duplicate entities in the active world. These mutate the live registry
     Engine::ECS::Entity createEntity(std::string name);  // empty: Name + Transform
     Engine::ECS::Entity createSpriteEntity();            // + a white SpriteRenderer
+    Engine::ECS::Entity createTilemapEntity();           // + an empty TilemapComponent
     void                duplicateSelected();             // clone all components
     void                deleteSelected();
+
+    // The Tile Palette panel: shows the selected tilemap's tileset (atlas
+    // cells or collection tiles) and lets you pick the active brush tile +
+    // brush size. The selection feeds the painting step.
+    void drawTilePalette();
+
+    // Tile painting in the viewport (when the Paint tool is active and a
+    // tilemap is selected): left-drag paints the brush, right-drag erases,
+    // Shift = rectangle fill, Alt = eyedropper, with a hovered-cell
+    // highlight. The image rect is passed as floats so this interface
+    // doesn't depend on ImGui types. Undo/redo restore whole-grid snapshots
+    // captured per stroke.
+    void paintViewport(float imgMinX, float imgMinY, float imgMaxX, float imgMaxY);
+    void undoTilePaint();
+    void redoTilePaint();
 
     // ── Scene authoring ───────────────────────────────────
     // Create / rename / delete project scenes + choose the startup one.
@@ -69,6 +85,31 @@ private:
     bool m_showConsole   { true };
     bool m_showColliders { true };   // collider wireframe overlay (authoring aid)
     bool m_showGrid      { true };   // tilemap cell-grid overlay (authoring aid)
+    bool m_showPalette   { true };   // Tile Palette panel
+
+    // Active painting brush (set by the Tile Palette, used when painting):
+    // tile id to paint (-1 = erase), and the square brush size in cells.
+    int m_brushTile { 0 };
+    int m_brushSize { 1 };
+
+    // Viewport tool: tile painting (true) vs the gizmo (false).
+    bool m_paintMode { false };
+
+    // Painting-stroke state + per-stroke undo/redo of tile grids.
+    bool m_painting    { false };   // mid freehand stroke
+    bool m_rectDrag    { false };   // mid Shift rectangle drag
+    int  m_rectAnchorX { 0 };
+    int  m_rectAnchorY { 0 };
+    std::vector<int>    m_strokeBefore;   // grid snapshot taken at stroke start
+    Engine::ECS::Entity m_strokeTarget;   // the tilemap being painted
+
+    struct TileEdit
+    {
+        Engine::ECS::Entity target;   // which tilemap
+        std::vector<int>    tiles;    // its grid before this edit
+    };
+    std::vector<TileEdit> m_undoStack;
+    std::vector<TileEdit> m_redoStack;
 
     // Console panel log (hotkey actions, scene switches, ...). Capped.
     std::vector<std::string> m_consoleLog;
