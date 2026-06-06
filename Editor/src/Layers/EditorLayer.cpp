@@ -17,6 +17,7 @@ import Engine.Renderer;
 import Engine.ECS;
 import Engine.Scene;
 import Engine.Systems;
+import Engine.Scripting;
 
 namespace
 {
@@ -37,6 +38,8 @@ namespace
         if (src.has<BoxCollider2D>())     dst.add<BoxCollider2D>(src.get<BoxCollider2D>());
         if (src.has<CircleCollider2D>())  dst.add<CircleCollider2D>(src.get<CircleCollider2D>());
         if (src.has<PolygonCollider2D>()) dst.add<PolygonCollider2D>(src.get<PolygonCollider2D>());
+        if (src.has<MarkerComponent>())   dst.add<MarkerComponent>(src.get<MarkerComponent>());
+        if (src.has<ScriptComponent>())   dst.add<ScriptComponent>(src.get<ScriptComponent>());
     }
 
     // ── Viewport math: screen -> world + picking  ──────────
@@ -390,6 +393,19 @@ namespace
             }
         }
 
+        if (entity.has<ScriptComponent>())
+        {
+            auto& sc = entity.get<ScriptComponent>();
+            if (ImGui::CollapsingHeader("Script", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                char cls[128] = {};
+                sc.className.copy(cls, sizeof(cls) - 1);
+                if (ImGui::InputText("Class", cls, sizeof(cls)))
+                    sc.className = cls;
+                ImGui::TextDisabled("C# class in the project's Game.dll, e.g. Game.Mover");
+            }
+        }
+
         // ── Add Component ───────────────────────────────────────────
 
         ImGui::Separator();
@@ -405,6 +421,7 @@ namespace
             if (!entity.has<Velocity2D>()        && ImGui::MenuItem("Velocity2D"))          entity.add<Velocity2D>();
             if (!entity.has<TilemapComponent>()  && ImGui::MenuItem("Tilemap"))             entity.add<TilemapComponent>();
             if (!entity.has<MarkerComponent>()   && ImGui::MenuItem("Marker"))              entity.add<MarkerComponent>();
+            if (!entity.has<ScriptComponent>()   && ImGui::MenuItem("Script"))              entity.add<ScriptComponent>();
             if (!entity.has<RigidBody2D>()       && ImGui::MenuItem("Rigid Body 2D"))       entity.add<RigidBody2D>();
 
             // A physics body uses ONE collider (the PhysicsSystem picks
@@ -1291,6 +1308,11 @@ void EditorLayer::setupWorld(Engine::Scene::World& world)
     world.addSystem<Engine::Systems::InterpolationSystem>();   // FIRST (snapshot before movers)
     world.addSystem<Engine::Systems::MovementSystem>();
     world.addSystem<Engine::Systems::AnimationSystem>();
+
+    // C# scripts -- gameplay logic from the project's managed assembly.
+    // managedDir = exe dir, where OmegaEngine.dll is deployed post-build.
+    world.addSystem<Engine::Scripting::ScriptSystem>(Engine::Core::Paths::executableDir());
+
     world.addSystem<Engine::Physics::PhysicsSystem>(Engine::Core::Application::get().eventBus());
 
     // Entities are pure DATA from scenes/<name>.json. A brand-new scene

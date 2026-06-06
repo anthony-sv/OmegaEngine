@@ -115,7 +115,16 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\vendor\dotnet-host;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(ProjectDir)..\vendor\dotnet-host\nethost.dll" "$(OutDir)"
+copy /Y "$(ProjectDir)..\ScriptCore\bin\Debug\net10.0\OmegaEngine.dll" "$(OutDir)"
+copy /Y "$(ProjectDir)..\ScriptCore\bin\Debug\net10.0\OmegaEngine.runtimeconfig.json" "$(OutDir)"
+copy /Y "$(ProjectDir)..\ScriptCore\bin\Debug\net10.0\OmegaEngine.deps.json" "$(OutDir)"
+copy /Y "$(ProjectDir)..\projects\Sandbox\scripts\bin\Debug\net10.0\Game.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>

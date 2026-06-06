@@ -201,6 +201,11 @@ namespace Engine::Scene
                 };
             }
 
+            if (e.has<ScriptComponent>())
+            {
+                je["Script"] = { { "className", e.get<ScriptComponent>().className } };
+            }
+
             entities.push_back(std::move(je));
         });
 
@@ -372,6 +377,13 @@ namespace Engine::Scene
                 mk.type = static_cast<MarkerType>(jk.value("type", 0));
                 mk.tag  = jk.value("tag", std::string {});
                 e.add<MarkerComponent>(std::move(mk));
+            }
+
+            if (je.contains("Script"))
+            {
+                ScriptComponent sc;
+                sc.className = je["Script"].value("className", std::string {});
+                e.add<ScriptComponent>(std::move(sc));
             }
 
             if (je.contains("RigidBody2D"))

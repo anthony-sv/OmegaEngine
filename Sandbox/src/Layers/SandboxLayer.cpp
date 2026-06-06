@@ -6,6 +6,7 @@ import Engine.ECS;
 import Engine.Scene;
 import Engine.Systems;
 import Engine.Physics;
+import Engine.Scripting;
 import std;
 
 SandboxLayer::SandboxLayer(Engine::Scene::Project project)
@@ -68,6 +69,10 @@ void SandboxLayer::onAttach()
 
         w.addSystem<Engine::Systems::MovementSystem>();
         w.addSystem<Engine::Systems::AnimationSystem>();
+
+        // C# scripts (gameplay logic lives in the project's managed assembly).
+        // managedDir = exe dir, where OmegaEngine.dll is deployed post-build.
+        w.addSystem<Engine::Scripting::ScriptSystem>(Engine::Core::Paths::executableDir());
 
         // Physics is universal engine code; entities opt IN by carrying a
         // RigidBody2D + collider. Scenes without physics bodies (Grid/Ring)

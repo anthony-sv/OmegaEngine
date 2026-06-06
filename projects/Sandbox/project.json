@@ -6,9 +6,10 @@
         "Physics",
         "Tilemap",
         "TilePhysics",
-        "Level1"
+        "Level1",
+        "ScriptTest"
     ],
-    "startupScene": "Level1",
+    "startupScene": "ScriptTest",
     "window": {
         "decorated": true,
         "height": 720,

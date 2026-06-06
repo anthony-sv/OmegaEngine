@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- The assembly scripts reference: `using OmegaEngine;`. The folder is
+         ScriptCore; the produced DLL is OmegaEngine.dll. -->
+    <AssemblyName>OmegaEngine</AssemblyName>
+    <RootNamespace>OmegaEngine</RootNamespace>
+    <!-- hostfxr needs a runtimeconfig.json to pick the runtime. -->
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+  </PropertyGroup>
+
+</Project>
