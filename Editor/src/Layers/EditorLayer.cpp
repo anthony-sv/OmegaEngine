@@ -32,6 +32,7 @@ namespace
         if (src.has<SpriteRenderer>())    dst.add<SpriteRenderer>(src.get<SpriteRenderer>());
         if (src.has<Velocity2D>())        dst.add<Velocity2D>(src.get<Velocity2D>());
         if (src.has<SpriteAnimation>())   dst.add<SpriteAnimation>(src.get<SpriteAnimation>());
+        if (src.has<TextureAnimation>())  dst.add<TextureAnimation>(src.get<TextureAnimation>());
         if (src.has<RigidBody2D>())       dst.add<RigidBody2D>(src.get<RigidBody2D>());
         if (src.has<BoxCollider2D>())     dst.add<BoxCollider2D>(src.get<BoxCollider2D>());
         if (src.has<CircleCollider2D>())  dst.add<CircleCollider2D>(src.get<CircleCollider2D>());
@@ -137,6 +138,45 @@ namespace
             if (ImGui::CollapsingHeader("Sprite Animation", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::Text("Frame %u / %zu", a.currentFrame + 1u, a.frames.size());
+                ImGui::DragFloat("Frame Duration", &a.frameDuration, 0.01f, 0.0f, 10.0f);
+                ImGui::Checkbox("Looping", &a.looping);
+                ImGui::Checkbox("Playing", &a.playing);
+            }
+        }
+
+        if (entity.has<TextureAnimation>())
+        {
+            auto& a = entity.get<TextureAnimation>();
+            if (ImGui::CollapsingHeader("Texture Animation", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                auto& assets = Engine::Core::Application::get().assets();
+
+                // Frame list: each row is a whole-texture path + remove.
+                int removeAt = -1;
+                for (std::size_t i = 0; i < a.framePaths.size(); ++i)
+                {
+                    ImGui::PushID(static_cast<int>(i));
+                    ImGui::Text("%zu: %s", i, a.framePaths[i].c_str());
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("X")) removeAt = static_cast<int>(i);
+                    ImGui::PopID();
+                }
+                if (removeAt >= 0)
+                {
+                    a.framePaths.erase(a.framePaths.begin() + removeAt);
+                    if (static_cast<std::size_t>(removeAt) < a.frames.size())
+                        a.frames.erase(a.frames.begin() + removeAt);
+                }
+
+                static char addPath[260] = {};
+                ImGui::InputText("New frame path", addPath, sizeof(addPath));
+                if (ImGui::Button("Add Frame") && addPath[0] != '\0')
+                {
+                    a.framePaths.emplace_back(addPath);
+                    a.frames.push_back(assets.load<Engine::Renderer::Texture2D>(addPath));
+                    addPath[0] = '\0';
+                }
+
                 ImGui::DragFloat("Frame Duration", &a.frameDuration, 0.01f, 0.0f, 10.0f);
                 ImGui::Checkbox("Looping", &a.looping);
                 ImGui::Checkbox("Playing", &a.playing);
@@ -333,6 +373,23 @@ namespace
             }
         }
 
+        if (entity.has<MarkerComponent>())
+        {
+            auto& mk = entity.get<MarkerComponent>();
+            if (ImGui::CollapsingHeader("Marker", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                char const* const types[] = { "SpawnPoint", "Trigger", "NPC", "Item", "CameraBound" };
+                int kind = static_cast<int>(mk.type);
+                if (ImGui::Combo("Type", &kind, types, 5))
+                    mk.type = static_cast<MarkerType>(kind);
+
+                char tag[128] = {};
+                mk.tag.copy(tag, sizeof(tag) - 1);
+                if (ImGui::InputText("Tag", tag, sizeof(tag)))
+                    mk.tag = tag;
+            }
+        }
+
         // ── Add Component ───────────────────────────────────────────
 
         ImGui::Separator();
@@ -343,8 +400,11 @@ namespace
         {
             if (!entity.has<Transform>()         && ImGui::MenuItem("Transform"))           entity.add<Transform>();
             if (!entity.has<SpriteRenderer>()    && ImGui::MenuItem("Sprite Renderer"))     entity.add<SpriteRenderer>();
+            if (!entity.has<SpriteAnimation>()   && ImGui::MenuItem("Sprite Animation"))    entity.add<SpriteAnimation>();
+            if (!entity.has<TextureAnimation>()  && ImGui::MenuItem("Texture Animation"))   entity.add<TextureAnimation>();
             if (!entity.has<Velocity2D>()        && ImGui::MenuItem("Velocity2D"))          entity.add<Velocity2D>();
             if (!entity.has<TilemapComponent>()  && ImGui::MenuItem("Tilemap"))             entity.add<TilemapComponent>();
+            if (!entity.has<MarkerComponent>()   && ImGui::MenuItem("Marker"))              entity.add<MarkerComponent>();
             if (!entity.has<RigidBody2D>()       && ImGui::MenuItem("Rigid Body 2D"))       entity.add<RigidBody2D>();
 
             // A physics body uses ONE collider (the PhysicsSystem picks
@@ -551,6 +611,11 @@ void EditorLayer::onRender(float alpha)
         // sprites, into the same FBO, so it sits on top.
         if (m_showColliders)
             Engine::Systems::RenderSystem::renderColliders(world->registry(), *m_camera, alpha);
+
+        // Marker icons (spawn / trigger / etc.) so invisible markers are
+        // visible to author.
+        if (m_showMarkers)
+            Engine::Systems::RenderSystem::renderMarkers(world->registry(), *m_camera);
     }
 
     // F2 -> screenshot the GAME VIEW (the viewport FBO, no editor chrome),
@@ -624,9 +689,11 @@ void EditorLayer::onImGuiRender()
             ImGui::MenuItem("Console", nullptr, &m_showConsole);
             ImGui::MenuItem("Tile Palette", nullptr, &m_showPalette);
             ImGui::MenuItem("Tilemap Layers", nullptr, &m_showLayers);
+            ImGui::MenuItem("Objects", nullptr, &m_showObjects);
             ImGui::Separator();
             ImGui::MenuItem("Colliders", nullptr, &m_showColliders);
             ImGui::MenuItem("Tilemap Grid", nullptr, &m_showGrid);
+            ImGui::MenuItem("Markers", nullptr, &m_showMarkers);
             ImGui::EndMenu();
         }
         if(ImGui::BeginMenu("Scene"))
@@ -1026,6 +1093,9 @@ void EditorLayer::onImGuiRender()
 
     if (m_showLayers)
         drawLayersPanel();
+
+    if (m_showObjects)
+        drawObjectsPanel();
 
     // ── Scene name modals (New / Rename) ───────────────────
     // Opened here (outside the menu) from the request flags set above.
@@ -1619,6 +1689,63 @@ void EditorLayer::drawLayersPanel()
 
         ImGui::PopID();
     }
+
+    ImGui::End();
+}
+
+Engine::ECS::Entity EditorLayer::createMarker(Engine::ECS::MarkerType type)
+{
+    using namespace Engine::ECS;
+
+    auto* world = m_sceneManager.active();
+    if (!world)
+        return {};
+
+    char const* const names[] = { "SpawnPoint", "Trigger", "NPC", "Item", "CameraBound" };
+    auto e = world->registry().create(names[static_cast<int>(type)]);
+
+    Transform tf;
+    tf.position = m_camera ? m_camera->position() : glm::vec2 { 0.0f, 0.0f };
+    if (type == MarkerType::CameraBound)
+        tf.scale = { 6.0f, 4.0f };           // a default camera region
+    e.add<Transform>(tf);
+    e.add<MarkerComponent>(MarkerComponent { type, {} });
+
+    if (type == MarkerType::Trigger)
+    {
+        // A static sensor so a body entering it fires Trigger events.
+        e.add<RigidBody2D>(RigidBody2D { .type = RigidBody2D::BodyType::Static });
+        BoxCollider2D box;
+        box.size      = { 1.0f, 1.0f };
+        box.isTrigger = true;
+        e.add<BoxCollider2D>(box);
+    }
+    else if (type == MarkerType::NPC || type == MarkerType::Item)
+    {
+        // A placeholder coloured quad so it's visible until art is assigned.
+        SpriteRenderer sr;
+        sr.color = (type == MarkerType::NPC) ? glm::vec4 { 0.30f, 0.80f, 0.95f, 1.0f }
+                                             : glm::vec4 { 0.90f, 0.40f, 0.90f, 1.0f };
+        e.add<SpriteRenderer>(sr);
+    }
+
+    m_selected = e;
+    logConsole(std::string { ICON_FA_CUBE " + " } + names[static_cast<int>(type)]);
+    return e;
+}
+
+void EditorLayer::drawObjectsPanel()
+{
+    using MT = Engine::ECS::MarkerType;
+
+    ImGui::Begin("Objects", &m_showObjects);
+    ImGui::TextDisabled("Place a marker, then move it with the gizmo:");
+
+    if (ImGui::Button("Spawn point",  { -1.0f, 0.0f })) createMarker(MT::SpawnPoint);
+    if (ImGui::Button("Trigger",      { -1.0f, 0.0f })) createMarker(MT::Trigger);
+    if (ImGui::Button("NPC",          { -1.0f, 0.0f })) createMarker(MT::NPC);
+    if (ImGui::Button("Item",         { -1.0f, 0.0f })) createMarker(MT::Item);
+    if (ImGui::Button("Camera bound", { -1.0f, 0.0f })) createMarker(MT::CameraBound);
 
     ImGui::End();
 }

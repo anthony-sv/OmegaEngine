@@ -65,6 +65,14 @@ private:
     // tilemap), each with show/hide, select, z-order reorder and opacity.
     void drawLayersPanel();
 
+    // Create a typed marker entity (placed at the camera centre, selected
+    // so you can position it with the gizmo). Triggers get a sensor
+    // collider; NPC/Item get a placeholder sprite.
+    Engine::ECS::Entity createMarker(Engine::ECS::MarkerType type);
+
+    // The Objects panel: buttons to place each marker type.
+    void drawObjectsPanel();
+
     // ── Scene authoring ───────────────────────────────────
     // Create / rename / delete project scenes + choose the startup one.
     // Each mutates the in-memory Project AND persists project.json.
@@ -91,6 +99,8 @@ private:
     bool m_showGrid      { true };   // tilemap cell-grid overlay (authoring aid)
     bool m_showPalette   { true };   // Tile Palette panel
     bool m_showLayers    { true };   // Tilemap Layers panel
+    bool m_showObjects   { true };   // Objects (markers) panel
+    bool m_showMarkers   { true };   // marker icon overlay in the viewport
 
     // Active painting brush (set by the Tile Palette, used when painting):
     // tile id to paint (-1 = erase), and the square brush size in cells.

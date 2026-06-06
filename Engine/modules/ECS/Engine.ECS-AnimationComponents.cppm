@@ -4,6 +4,7 @@ module;
 
 export module Engine.ECS:AnimationComponents;
 
+import Engine.Renderer;   // Renderer::Texture2D (TextureAnimation frames)
 import std;
 
 /*═══════════════════════════════════════════════════════════════════════════════
@@ -75,5 +76,38 @@ namespace Engine::ECS
         bool looping { true };
         bool playing { true };
 	}; // struct SpriteAnimation
+
+
+    // -----------------------------------------------------------------
+    // TextureAnimation -- frame-based animation where each frame is a
+    // WHOLE TEXTURE (a separate sprite file), not a UV sub-region.
+    //
+    // SpriteAnimation cycles UV rects inside ONE sheet; this cycles
+    // between DIFFERENT textures -- the right tool when your frames are
+    // separate files. 
+    // The animation system swaps SpriteRenderer::texture to the current frame each tick
+    // (and resets the UV to the full image). A one-frame animation is a
+    // valid "single pose".
+    //
+    //   framePaths -- serializable texture ids (the cache keys).
+    //   frames     -- the resolved runtime pointers (parallel to
+    //                 framePaths; rebuilt on load via the AssetManager).
+    //
+    // Binding WHICH animation plays to game state
+    // is gameplay logic; this component is just the playback mechanism.
+    // -----------------------------------------------------------------
+
+    export struct TextureAnimation
+    {
+        std::vector<std::string>                framePaths {};   // serializable
+        std::vector<Renderer::Texture2D const*> frames {};       // runtime, parallel
+
+        float         frameDuration { 0.15f };      // seconds per frame
+        float         elapsed       { 0.0f };       // time accumulator
+        std::uint32_t currentFrame  { 0 };          // index into frames
+
+        bool looping { true };
+        bool playing { true };
+	}; // struct TextureAnimation
 
 } // namespace ECS

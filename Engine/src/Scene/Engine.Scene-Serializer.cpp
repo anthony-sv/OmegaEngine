@@ -98,6 +98,17 @@ namespace Engine::Scene
                 };
             }
 
+            if (e.has<TextureAnimation>())
+            {
+                auto const& a = e.get<TextureAnimation>();
+                je["TextureAnimation"] = {
+                    { "framePaths",    a.framePaths },
+                    { "frameDuration", a.frameDuration },
+                    { "looping",       a.looping },
+                    { "playing",       a.playing },
+                };
+            }
+
             if (e.has<RigidBody2D>())
             {
                 auto const& rb = e.get<RigidBody2D>();
@@ -178,6 +189,15 @@ namespace Engine::Scene
                     { "zIndex",        m.zIndex },
                     { "opacity",       m.opacity },
                     { "visible",       m.visible },
+                };
+            }
+
+            if (e.has<MarkerComponent>())
+            {
+                auto const& mk = e.get<MarkerComponent>();
+                je["Marker"] = {
+                    { "type", static_cast<int>(mk.type) },
+                    { "tag",  mk.tag },
                 };
             }
 
@@ -284,6 +304,20 @@ namespace Engine::Scene
                 e.add<SpriteAnimation>(std::move(anim));
             }
 
+            if (je.contains("TextureAnimation"))
+            {
+                auto const& ja = je["TextureAnimation"];
+                TextureAnimation a;
+                a.framePaths    = ja.value("framePaths", std::vector<std::string> {});
+                a.frameDuration = ja.value("frameDuration", 0.15f);
+                a.looping       = ja.value("looping", true);
+                a.playing       = ja.value("playing", true);
+                for (auto const& p : a.framePaths)
+                    a.frames.push_back(p.empty() ? nullptr
+                                                 : assets.load<Renderer::Texture2D>(p));
+                e.add<TextureAnimation>(std::move(a));
+            }
+
             if (je.contains("Tilemap"))
             {
                 auto const& jm = je["Tilemap"];
@@ -329,6 +363,15 @@ namespace Engine::Scene
                 }
 
                 e.add<TilemapComponent>(std::move(m));
+            }
+
+            if (je.contains("Marker"))
+            {
+                auto const& jk = je["Marker"];
+                MarkerComponent mk;
+                mk.type = static_cast<MarkerType>(jk.value("type", 0));
+                mk.tag  = jk.value("tag", std::string {});
+                e.add<MarkerComponent>(std::move(mk));
             }
 
             if (je.contains("RigidBody2D"))

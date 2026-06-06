@@ -108,6 +108,56 @@ namespace Engine::Systems
                 sprite.uvMin = frame.uvMin;
                 sprite.uvMax = frame.uvMax;
             }
+
+            // ── Texture-swap animations (frames are whole textures) ──
+            // Same timeline logic, but instead of a UV rect each frame
+            // swaps the SpriteRenderer's TEXTURE (and resets the UV to the
+            // full image). A non-playing animation still pins the texture
+            // to its current frame, so a one-frame "pose" works.
+            for (
+                auto&& [entity, anim, sprite]: m_registry.view<ECS::TextureAnimation, ECS::SpriteRenderer>().each()
+                )
+            {
+                if (anim.frames.empty())
+                    continue;
+
+                auto const frameCount = static_cast<std::uint32_t>(anim.frames.size());
+
+                if (anim.playing && anim.frameDuration > 0.0f)
+                {
+                    anim.elapsed += dt;
+
+                    while (anim.elapsed >= anim.frameDuration)
+                    {
+                        anim.elapsed -= anim.frameDuration;
+                        ++anim.currentFrame;
+
+                        if (anim.currentFrame >= frameCount)
+                        {
+                            if (anim.looping)
+                            {
+                                anim.currentFrame = 0;
+                            }
+                            else
+                            {
+                                anim.currentFrame = frameCount - 1;
+                                anim.playing      = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (anim.currentFrame >= frameCount)
+                    anim.currentFrame = frameCount - 1;
+
+                if (auto const* tex = anim.frames[anim.currentFrame]; tex != nullptr)
+                {
+                    sprite.texture = tex;
+                    sprite.uvMin   = { 0.0f, 0.0f };
+                    sprite.uvMax   = { 1.0f, 1.0f };
+                }
+            }
         }
 
     private:

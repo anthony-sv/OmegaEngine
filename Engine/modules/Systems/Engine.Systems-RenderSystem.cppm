@@ -159,6 +159,40 @@ namespace Engine::Systems
             Renderer::Renderer2D::endBatch();
         }
 
+        // Draw an icon for every MarkerComponent (editor authoring aid):
+        // a diamond at the marker, plus the region box for CameraBound.
+        // Markers are invisible gameplay anchors, so this is how you see
+        // and position them. Editor overlay; the runtime doesn't draw it.
+        static void renderMarkers(ECS::Registry& registry, Renderer::Camera2D const& camera)
+        {
+            constexpr float thick = 0.02f;
+            constexpr float r     = 0.18f;
+
+            Renderer::Renderer2D::beginBatch(camera);
+
+            for (auto&& [e, tf, mk] : registry.view<ECS::Transform, ECS::MarkerComponent>().each())
+            {
+                glm::vec4 const col = markerColor(mk.type);
+                glm::vec2 const p   = tf.position;
+
+                glm::vec2 const top { p.x, p.y + r };
+                glm::vec2 const bot { p.x, p.y - r };
+                glm::vec2 const lft { p.x - r, p.y };
+                glm::vec2 const rgt { p.x + r, p.y };
+                drawLine(top, rgt, thick, col);
+                drawLine(rgt, bot, thick, col);
+                drawLine(bot, lft, thick, col);
+                drawLine(lft, top, thick, col);
+
+                // CameraBound also shows the region (Transform.scale) it keeps
+                // the camera inside.
+                if (mk.type == ECS::MarkerType::CameraBound)
+                    drawBoxOutline(p, tf.scale, tf.rotation, col, thick);
+            }
+
+            Renderer::Renderer2D::endBatch();
+        }
+
         // Draw a WIREFRAME overlay of every collider (box/circle/polygon)
         // as seen through `camera`. Reads the ECS collider COMPONENTS, not
         // Box2D bodies, so it works in the editor's Edit mode too (where
@@ -421,6 +455,21 @@ namespace Engine::Systems
 
         // -- Debug-draw primitives (lines built from thin rotated quads,
         //    so they reuse the existing quad batch -- no GL line pipeline) --
+
+        // Icon colour per marker type (editor marker overlay).
+        static glm::vec4 markerColor(ECS::MarkerType type)
+        {
+            using T = ECS::MarkerType;
+            switch (type)
+            {
+                case T::SpawnPoint:  return { 0.30f, 0.90f, 0.40f, 1.0f };
+                case T::Trigger:     return { 0.95f, 0.85f, 0.20f, 1.0f };
+                case T::NPC:         return { 0.30f, 0.80f, 0.95f, 1.0f };
+                case T::Item:        return { 0.90f, 0.40f, 0.90f, 1.0f };
+                case T::CameraBound: return { 0.95f, 0.60f, 0.25f, 1.0f };
+            }
+            return { 1.0f, 1.0f, 1.0f, 1.0f };
+        }
 
         // Rotate `v` by `degrees` (CCW), matching Transform's convention.
         static glm::vec2 rotateVec(glm::vec2 v, float degrees)

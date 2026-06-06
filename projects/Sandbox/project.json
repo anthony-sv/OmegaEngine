@@ -5,9 +5,10 @@
         "Ring",
         "Physics",
         "Tilemap",
-        "TilePhysics"
+        "TilePhysics",
+        "Level1"
     ],
-    "startupScene": "TilePhysics",
+    "startupScene": "Level1",
     "window": {
         "decorated": true,
         "height": 720,
