@@ -43,26 +43,45 @@ namespace Engine::Scripting
     {
     public:
 
-        // `managedDir` holds the runtime (OmegaEngine.dll + runtimeconfig.json),
-        // usually the executable directory. `gameAssembly` is the project's
-        // compiled scripts (e.g. <project>/scripts/bin/.../Game.dll); it is
-        // loaded from there so a rebuild can be watched and hot-reloaded. An
-        // empty path means the project ships no scripts.
+        // `managedDir` holds the runtime (OmegaEngine.dll + BuildScripts.cs),
+        // usually the executable directory. `scriptsDir` is the project's
+        // script SOURCE folder (e.g. <project>/scripts): the engine compiles it
+        // itself and loads + hot-reloads the result. Empty = no project scripts.
         ScriptSystem(ECS::Registry& registry,
                      std::filesystem::path managedDir,
-                     std::filesystem::path gameAssembly = {}
+                     std::filesystem::path scriptsDir = {}
         )
-            : m_registry     { registry }
-            , m_managedDir   { std::move(managedDir) }
-            , m_gameAssembly { std::move(gameAssembly) }
+            : m_registry   { registry }
+            , m_managedDir { std::move(managedDir) }
+            , m_scriptsDir { std::move(scriptsDir) }
         {}
 
         void onInit() override
         {
             auto& host = ScriptHost::instance();
             host.ensureInitialized(m_managedDir);
-            if (!m_gameAssembly.empty())
-                host.loadGame(m_gameAssembly);
+
+            // Build + load the project's scripts ONCE (every world shares the
+            // one host, and onInit runs per world).
+            static bool booted = false;
+            if (m_scriptsDir.empty() || booted)
+                return;
+            booted = true;
+
+            auto const dir = std::filesystem::absolute(m_scriptsDir);
+            auto const dll = dir / "bin" / "managed" / "Game.dll";
+            host.configureBuild(dir, m_managedDir / "BuildScripts.cs");
+
+            if (std::filesystem::exists(dll))
+            {
+                host.loadGame(dll);     // load the last build instantly...
+                host.requestBuild();    // ...and refresh it in the background
+            }
+            else
+            {
+                host.buildBlocking();   // nothing to load yet -> build first
+                host.loadGame(dll);
+            }
         }
 
         // Wire physics into the script API: the body velocity/impulse/force
@@ -117,6 +136,7 @@ namespace Engine::Scripting
             host.bindRegistry(&m_registry);
             host.bindPhysics(m_physics);
             host.setTime(dt);
+            host.pollBuild();       // rebuild project scripts when a source changes
             host.beginFrame();      // apply any pending hot reload (main thread)
 
             // The managed runtime instantiates each script on first sight and
@@ -128,7 +148,7 @@ namespace Engine::Scripting
     private:
         ECS::Registry&         m_registry;
         std::filesystem::path  m_managedDir;
-        std::filesystem::path  m_gameAssembly;
+        std::filesystem::path  m_scriptsDir;
         Physics::PhysicsWorld* m_physics { nullptr };
 
     }; // class ScriptSystem

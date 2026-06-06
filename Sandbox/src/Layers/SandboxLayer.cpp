@@ -71,12 +71,12 @@ void SandboxLayer::onAttach()
         w.addSystem<Engine::Systems::AnimationSystem>();
 
         // C# scripts (gameplay logic lives in the project's managed assembly).
-        // managedDir = exe dir (OmegaEngine.dll, deployed post-build); the game
-        // assembly is loaded from the PROJECT's build output (cwd = project
-        // root) so a `dotnet build` is watched and hot-reloaded.
+        // managedDir = exe dir (OmegaEngine.dll + BuildScripts.cs, deployed
+        // post-build); scriptsDir = the project's script SOURCE folder (cwd =
+        // project root). The engine compiles it and hot-reloads on edits.
         auto& scripts = w.addSystem<Engine::Scripting::ScriptSystem>(
             Engine::Core::Paths::executableDir(),
-            "scripts/bin/Debug/net10.0/Game.dll");
+            "scripts");
 
         // Physics is universal engine code; entities opt IN by carrying a
         // RigidBody2D + collider. Scenes without physics bodies (Grid/Ring)

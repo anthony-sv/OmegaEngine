@@ -1249,6 +1249,16 @@ void EditorLayer::handleShortcuts()
     // at the top of this frame, so wasKeyPressed() edges are valid here and
     // never dropped by skipped fixed-timestep ticks.
 
+    // Drive the script build-watch + hot-reload every render frame. The world's
+    // ScriptSystem only ticks in Play, but a saved script must rebuild (and be
+    // ready, or hot-swap live) in EDIT mode too -- so pump the host here rather
+    // than from the play-gated system tick.
+    if (auto& host = Engine::Scripting::ScriptHost::instance(); host.ready())
+    {
+        host.pollBuild();
+        host.beginFrame();
+    }
+
     bool const ctrl = Input::isKeyDown(Key::LeftControl);
 
     if (ctrl && Input::wasKeyPressed(Key::P)) togglePlay();
@@ -1310,12 +1320,12 @@ void EditorLayer::setupWorld(Engine::Scene::World& world)
     world.addSystem<Engine::Systems::AnimationSystem>();
 
     // C# scripts -- gameplay logic from the project's managed assembly.
-    // managedDir = exe dir (OmegaEngine.dll, deployed post-build); the game
-    // assembly is loaded from the PROJECT's build output (cwd = project root)
-    // so a `dotnet build` is watched and hot-reloaded.
+    // managedDir = exe dir (OmegaEngine.dll + BuildScripts.cs, deployed
+    // post-build); scriptsDir = the project's script SOURCE folder (cwd =
+    // project root). The engine compiles it and hot-reloads on edits.
     auto& scripts = world.addSystem<Engine::Scripting::ScriptSystem>(
         Engine::Core::Paths::executableDir(),
-        "scripts/bin/Debug/net10.0/Game.dll");
+        "scripts");
 
     auto& bus     = Engine::Core::Application::get().eventBus();
     auto& physics = world.addSystem<Engine::Physics::PhysicsSystem>(bus);

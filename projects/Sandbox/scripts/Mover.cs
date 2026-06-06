@@ -14,7 +14,7 @@ public sealed class Mover : Script
 
     public override void OnUpdate(float dt)
     {
-        Entity.Position += new Vector2(1.5f * dt, 0.0f);   // 1.5 units/s to the right
+        Entity.Position += new Vector2(3.0f * dt, 0.0f);   // 1.5 units/s to the right
 
         if ((_elapsed += dt) >= 1.0f)
         {

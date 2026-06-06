@@ -267,6 +267,66 @@ namespace Engine::Scripting
             std::uint32_t (__cdecl *Find)   (char const*);
             int           (__cdecl *IsValid)(std::uint32_t);
         };
+
+        // ── Project-script build helpers ──
+
+        // Launch  `dotnet run --file "<tool>" -- "<scriptsDir>"`  and return its
+        // process handle (the caller waits on / closes it). The tool compiles
+        // the project's scripts to a fixed output dir.
+        HANDLE spawnBuildProcess(
+            std::filesystem::path const& buildTool,
+            std::filesystem::path const& scriptsDir
+        )
+        {
+            std::wstring cmd = L"dotnet run --file \"" + buildTool.wstring()
+                             + L"\" -- \"" + scriptsDir.wstring() + L"\"";
+            std::vector<wchar_t> buffer(cmd.begin(), cmd.end());
+            buffer.push_back(L'\0');     // CreateProcessW needs a mutable, NUL-terminated buffer
+
+            STARTUPINFOW si {};
+            si.cb = sizeof(si);
+            PROCESS_INFORMATION pi {};
+            if (!::CreateProcessW(nullptr, buffer.data(), nullptr, nullptr, TRUE,
+                                  0, nullptr, nullptr, &si, &pi))
+            {
+                std::println(std::cerr, "[Ω::Scripting] could not launch the script build tool");
+                return nullptr;
+            }
+            ::CloseHandle(pi.hThread);
+            return pi.hProcess;
+        }
+
+        // The most-recently-modified .cs source and its path (build artifacts
+        // under bin/ and obj/ skipped). Drives change detection -- the path is
+        // logged so it's obvious WHICH save triggered a rebuild.
+        struct SourceScan
+        {
+            std::filesystem::file_time_type time {};
+            std::filesystem::path           file {};
+        };
+
+        SourceScan newestSource(std::filesystem::path const& scriptsDir)
+        {
+            namespace fs = std::filesystem;
+            SourceScan newest;
+            std::error_code ec;
+            for (auto it = fs::recursive_directory_iterator(scriptsDir, ec);
+                 !ec && it != fs::recursive_directory_iterator();
+                 it.increment(ec))
+            {
+                if (it->is_directory(ec))
+                {
+                    auto const name = it->path().filename().string();
+                    if (name == "bin" || name == "obj")
+                        it.disable_recursion_pending();
+                    continue;
+                }
+                if (it->path().extension() == ".cs")
+                    if (auto const t = fs::last_write_time(it->path(), ec); !ec && t > newest.time)
+                        newest = { t, it->path() };
+            }
+            return newest;
+        }
     }
 
     // =================================================================
@@ -292,6 +352,13 @@ namespace Engine::Scripting
         void (__cdecl *OnPhysicsEvent)(std::uint32_t, std::uint32_t, std::uint8_t) { nullptr };
 
         load_assembly_and_get_function_pointer_fn load_assembly { nullptr };
+
+        // Project-script build orchestration.
+        std::filesystem::path                 scriptsDir;
+        std::filesystem::path                 buildTool;
+        std::filesystem::file_time_type       lastBuilt {};
+        HANDLE                                buildProc { nullptr };   // running async build, or null
+        std::chrono::steady_clock::time_point lastPoll {};
     };
 
     ScriptHost::ScriptHost()  : m_impl { std::make_unique<Impl>() } {}
@@ -355,6 +422,67 @@ namespace Engine::Scripting
             return;
         }
         m_impl->LoadAssembly(abs.string().c_str());
+    }
+
+    void ScriptHost::configureBuild(std::filesystem::path scriptsDir, std::filesystem::path buildTool)
+    {
+        m_impl->scriptsDir = std::move(scriptsDir);
+        m_impl->buildTool  = std::move(buildTool);
+    }
+
+    void ScriptHost::buildBlocking()
+    {
+        if (m_impl->scriptsDir.empty())
+            return;
+
+        std::println("[Ω::Scripting] building project scripts (first load)...");
+        if (HANDLE h = spawnBuildProcess(m_impl->buildTool, m_impl->scriptsDir))
+        {
+            ::WaitForSingleObject(h, INFINITE);
+            ::CloseHandle(h);
+        }
+        m_impl->lastBuilt = newestSource(m_impl->scriptsDir).time;
+    }
+
+    void ScriptHost::requestBuild()
+    {
+        if (m_impl->scriptsDir.empty() || m_impl->buildProc)
+            return;
+
+        std::println("[Ω::Scripting] rebuilding project scripts...");
+        m_impl->buildProc = spawnBuildProcess(m_impl->buildTool, m_impl->scriptsDir);
+        m_impl->lastBuilt = newestSource(m_impl->scriptsDir).time;
+    }
+
+    void ScriptHost::pollBuild()
+    {
+        if (m_impl->scriptsDir.empty())
+            return;
+
+        // Throttle the filesystem scan -- no need to stat every frame.
+        auto const now = std::chrono::steady_clock::now();
+        if (now - m_impl->lastPoll < std::chrono::milliseconds(500))
+            return;
+        m_impl->lastPoll = now;
+
+        // A build still in flight? Let it finish before considering another.
+        if (m_impl->buildProc)
+        {
+            if (::WaitForSingleObject(m_impl->buildProc, 0) == WAIT_TIMEOUT)
+                return;
+            ::CloseHandle(m_impl->buildProc);
+            m_impl->buildProc = nullptr;
+        }
+
+        // A source edited since our last build kicks off a background rebuild;
+        // when it writes the assembly, the dll watch hot-reloads it.
+        if (auto const newest = newestSource(m_impl->scriptsDir); newest.time > m_impl->lastBuilt)
+        {
+            std::println("[Ω::Scripting] '{}' changed -> rebuilding scripts",
+                         newest.file.filename().string());
+            m_impl->buildProc = spawnBuildProcess(m_impl->buildTool, m_impl->scriptsDir);
+            m_impl->lastBuilt = newest.time;
+        }
     }
 
     bool ScriptHost::ensureInitialized(std::filesystem::path const& managedDir)

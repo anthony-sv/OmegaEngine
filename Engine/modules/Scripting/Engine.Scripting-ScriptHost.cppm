@@ -77,6 +77,19 @@ namespace Engine::Scripting
         // context and watch it for rebuilds (hot reload). Idempotent.
         void loadGame(std::filesystem::path const& gameAssembly);
 
+        // ── Project-script build orchestration ──
+        // The engine compiles the project's C# scripts itself by shelling out
+        // to the BuildScripts.cs tool (dotnet run --file), which writes the
+        // assembly to a fixed output dir. configureBuild sets the source dir +
+        // tool path; buildBlocking builds and WAITS (used when there's no
+        // prior build to load); requestBuild builds in the BACKGROUND;
+        // pollBuild (call each frame) rebuilds when a .cs source changes -- the
+        // dll watch then hot-reloads the result.
+        void configureBuild(std::filesystem::path scriptsDir, std::filesystem::path buildTool);
+        void buildBlocking();
+        void requestBuild();
+        void pollBuild();
+
         // The ECS world the script API reads/writes (set before updates).
         // Switching worlds clears the previous world's script instances.
         void bindRegistry(ECS::Registry* registry);

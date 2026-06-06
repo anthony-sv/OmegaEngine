@@ -123,7 +123,7 @@
 copy /Y "$(ProjectDir)..\ScriptCore\bin\Debug\net10.0\OmegaEngine.dll" "$(OutDir)"
 copy /Y "$(ProjectDir)..\ScriptCore\bin\Debug\net10.0\OmegaEngine.runtimeconfig.json" "$(OutDir)"
 copy /Y "$(ProjectDir)..\ScriptCore\bin\Debug\net10.0\OmegaEngine.deps.json" "$(OutDir)"
-copy /Y "$(ProjectDir)..\projects\Sandbox\scripts\bin\Debug\net10.0\Game.dll" "$(OutDir)"</Command>
+copy /Y "$(ProjectDir)..\tools\BuildScripts.cs" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
