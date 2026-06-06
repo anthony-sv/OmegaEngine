@@ -201,6 +201,28 @@ namespace Engine::Physics
             b2Body_SetTransform(it->second, toB2(position), b2MakeRot(angle));
     }
 
+    glm::vec2 PhysicsWorld::getLinearVelocity(EntityId id) const
+    {
+        if (auto it = m_impl->bodies.find(id); it != m_impl->bodies.end())
+        {
+            b2Vec2 const v = b2Body_GetLinearVelocity(it->second);
+            return { v.x, v.y };
+        }
+        return { 0.0f, 0.0f };
+    }
+
+    void PhysicsWorld::applyLinearImpulse(EntityId id, glm::vec2 impulse)
+    {
+        if (auto it = m_impl->bodies.find(id); it != m_impl->bodies.end())
+            b2Body_ApplyLinearImpulseToCenter(it->second, toB2(impulse), true);
+    }
+
+    void PhysicsWorld::applyForce(EntityId id, glm::vec2 force)
+    {
+        if (auto it = m_impl->bodies.find(id); it != m_impl->bodies.end())
+            b2Body_ApplyForceToCenter(it->second, toB2(force), true);
+    }
+
     // =================================================================
     //  Step + event buffering
     // =================================================================

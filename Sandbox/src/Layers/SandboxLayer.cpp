@@ -74,14 +74,19 @@ void SandboxLayer::onAttach()
         // managedDir = exe dir (OmegaEngine.dll, deployed post-build); the game
         // assembly is loaded from the PROJECT's build output (cwd = project
         // root) so a `dotnet build` is watched and hot-reloaded.
-        w.addSystem<Engine::Scripting::ScriptSystem>(
+        auto& scripts = w.addSystem<Engine::Scripting::ScriptSystem>(
             Engine::Core::Paths::executableDir(),
             "scripts/bin/Debug/net10.0/Game.dll");
 
         // Physics is universal engine code; entities opt IN by carrying a
         // RigidBody2D + collider. Scenes without physics bodies (Grid/Ring)
         // just step an empty world -- effectively free.
-        w.addSystem<Engine::Physics::PhysicsSystem>(Engine::Core::Application::get().eventBus());
+        auto& bus     = Engine::Core::Application::get().eventBus();
+        auto& physics = w.addSystem<Engine::Physics::PhysicsSystem>(bus);
+
+        // Give scripts the body API (velocity/impulse/force) + collision and
+        // trigger callbacks. Done after BOTH systems exist.
+        scripts.usePhysics(physics.world(), bus);
 
         // SPACE -> cycle to the NEXT scene in the project's list. The
         // "next" is computed from data (this world's position in the

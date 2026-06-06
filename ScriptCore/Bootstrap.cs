@@ -95,6 +95,35 @@ public static class Bootstrap
         script?.OnUpdate(dt);
     }
 
+    // Route a physics contact/sensor event to both involved scripts. `kind`
+    // matches the native dispatcher (see PhysicsEvent).
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static void OnPhysicsEvent(uint a, uint b, byte kind)
+    {
+        var which = (PhysicsEventKind)kind;
+        Notify(a, b, which);
+        Notify(b, a, which);
+    }
+
+    // Mirrors the native Scripting::PhysicsEventKind -- crosses the boundary as
+    // a byte, so the underlying type AND order MUST stay in lockstep.
+    private enum PhysicsEventKind : byte { CollisionEnter, CollisionExit, TriggerEnter, TriggerExit }
+
+    private static void Notify(uint self, uint other, PhysicsEventKind kind)
+    {
+        if (!Scripts.TryGetValue(self, out var script) || script is null)
+            return;
+
+        var e = new Entity(other);
+        switch (kind)
+        {
+            case PhysicsEventKind.CollisionEnter: script.OnCollisionEnter(e); break;
+            case PhysicsEventKind.CollisionExit:  script.OnCollisionExit(e);  break;
+            case PhysicsEventKind.TriggerEnter:   script.OnTriggerEnter(e);   break;
+            case PhysicsEventKind.TriggerExit:    script.OnTriggerExit(e);    break;
+        }
+    }
+
     // ── Hot reload ──────────────────────────────────────────────────────────
 
     private static void Reload()

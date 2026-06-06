@@ -1,7 +1,8 @@
 export module Engine.Scripting:ScriptSystem;
 
-import Engine.Core;   // Core::ISystem
-import Engine.ECS;    // Registry, ScriptComponent
+import Engine.Core;      // Core::ISystem, Core::EventBus
+import Engine.ECS;       // Registry, ScriptComponent
+import Engine.Physics;   // PhysicsWorld + collision/trigger events
 import :ScriptHost;
 import std;
 
@@ -64,6 +65,49 @@ namespace Engine::Scripting
                 host.loadGame(m_gameAssembly);
         }
 
+        // Wire physics into the script API: the body velocity/impulse/force
+        // calls steer `world`, and contact/sensor events on `bus` are routed
+        // to scripts' OnCollision*/OnTrigger* hooks. Call from the layer after
+        // BOTH the ScriptSystem and the PhysicsSystem exist.
+        void usePhysics(Physics::PhysicsWorld& world, Core::EventBus& bus)
+        {
+            m_physics = &world;
+
+            // Only the active world steps physics, so its events are the only
+            // ones on the bus -- a single subscription routes to the host's
+            // (active-world) instances. Guard so multiple worlds don't each
+            // subscribe and fire the callbacks N times.
+            static bool subscribed = false;
+            if (subscribed)
+                return;
+            subscribed = true;
+
+            bus.subscribe<Physics::CollisionEnterEvent>([](Physics::CollisionEnterEvent const& e)
+            {
+                ScriptHost::instance().dispatchPhysicsEvent(
+                    static_cast<std::uint32_t>(e.a.id()), static_cast<std::uint32_t>(e.b.id()),
+                    PhysicsEventKind::CollisionEnter);
+            });
+            bus.subscribe<Physics::CollisionExitEvent>([](Physics::CollisionExitEvent const& e)
+            {
+                ScriptHost::instance().dispatchPhysicsEvent(
+                    static_cast<std::uint32_t>(e.a.id()), static_cast<std::uint32_t>(e.b.id()),
+                    PhysicsEventKind::CollisionExit);
+            });
+            bus.subscribe<Physics::TriggerEnterEvent>([](Physics::TriggerEnterEvent const& e)
+            {
+                ScriptHost::instance().dispatchPhysicsEvent(
+                    static_cast<std::uint32_t>(e.sensor.id()), static_cast<std::uint32_t>(e.other.id()),
+                    PhysicsEventKind::TriggerEnter);
+            });
+            bus.subscribe<Physics::TriggerExitEvent>([](Physics::TriggerExitEvent const& e)
+            {
+                ScriptHost::instance().dispatchPhysicsEvent(
+                    static_cast<std::uint32_t>(e.sensor.id()), static_cast<std::uint32_t>(e.other.id()),
+                    PhysicsEventKind::TriggerExit);
+            });
+        }
+
         void onUpdate(float dt) override
         {
             auto& host = ScriptHost::instance();
@@ -71,6 +115,8 @@ namespace Engine::Scripting
                 return;
 
             host.bindRegistry(&m_registry);
+            host.bindPhysics(m_physics);
+            host.setTime(dt);
             host.beginFrame();      // apply any pending hot reload (main thread)
 
             // The managed runtime instantiates each script on first sight and
@@ -80,9 +126,10 @@ namespace Engine::Scripting
         }
 
     private:
-        ECS::Registry&        m_registry;
-        std::filesystem::path m_managedDir;
-        std::filesystem::path m_gameAssembly;
+        ECS::Registry&         m_registry;
+        std::filesystem::path  m_managedDir;
+        std::filesystem::path  m_gameAssembly;
+        Physics::PhysicsWorld* m_physics { nullptr };
 
     }; // class ScriptSystem
 

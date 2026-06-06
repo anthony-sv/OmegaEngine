@@ -153,6 +153,13 @@ namespace Engine::Physics
         void setLinearVelocity(EntityId id, glm::vec2 velocity);
         void setTransform     (EntityId id, glm::vec2 position, float angle);
 
+        // Script-driven dynamics: read the body's velocity and push it. Impulse
+        // and force are applied at the centre of mass (so they never spin the
+        // body). No-ops for entities without a body.
+        [[nodiscard]] glm::vec2 getLinearVelocity(EntityId id) const;
+        void applyLinearImpulse(EntityId id, glm::vec2 impulse);
+        void applyForce        (EntityId id, glm::vec2 force);
+
 
         // -- Simulation ------------------------------------------------
         // Advance by a FIXED timestep, then buffer this step's contact

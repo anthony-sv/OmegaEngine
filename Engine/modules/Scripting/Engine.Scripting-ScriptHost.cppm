@@ -1,6 +1,7 @@
 export module Engine.Scripting:ScriptHost;
 
-import Engine.ECS;   // ECS::Registry (the script API operates on it)
+import Engine.ECS;       // ECS::Registry (the script API operates on it)
+import Engine.Physics;   // Physics::PhysicsWorld (script-driven body dynamics)
 import std;
 
 /*═══════════════════════════════════════════════════════════════════════════════
@@ -48,6 +49,17 @@ namespace Engine::Scripting
     //
     // =================================================================
 
+    // Which physics event is being delivered to a script. Crosses the managed
+    // boundary as the underlying byte, so the type AND values MUST match the
+    // managed Bootstrap.PhysicsEventKind enum.
+    export enum class PhysicsEventKind : std::uint8_t
+    {
+        CollisionEnter,
+        CollisionExit,
+        TriggerEnter,
+        TriggerExit,
+    };
+
     export class ScriptHost
     {
     public:
@@ -69,9 +81,20 @@ namespace Engine::Scripting
         // Switching worlds clears the previous world's script instances.
         void bindRegistry(ECS::Registry* registry);
 
+        // The physics world the script body API steers (velocity / impulse /
+        // force). May be null for worlds without physics. Set before updates.
+        void bindPhysics(Physics::PhysicsWorld* physics);
+
+        // Publish this frame's dt (Time.Delta) and accumulate elapsed time.
+        void setTime(float dt);
+
         // Apply any pending hot reload. Call once per update batch, on the
         // main thread, before ticking.
         void beginFrame();
+
+        // Route a physics contact/sensor event to the involved scripts'
+        // OnCollision*/OnTrigger* hooks.
+        void dispatchPhysicsEvent(std::uint32_t a, std::uint32_t b, PhysicsEventKind kind);
 
         // Tick one entity's script: the managed runtime instantiates it on
         // first sight (keyed by entity id) and drives OnUpdate.

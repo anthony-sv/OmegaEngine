@@ -1313,11 +1313,16 @@ void EditorLayer::setupWorld(Engine::Scene::World& world)
     // managedDir = exe dir (OmegaEngine.dll, deployed post-build); the game
     // assembly is loaded from the PROJECT's build output (cwd = project root)
     // so a `dotnet build` is watched and hot-reloaded.
-    world.addSystem<Engine::Scripting::ScriptSystem>(
+    auto& scripts = world.addSystem<Engine::Scripting::ScriptSystem>(
         Engine::Core::Paths::executableDir(),
         "scripts/bin/Debug/net10.0/Game.dll");
 
-    world.addSystem<Engine::Physics::PhysicsSystem>(Engine::Core::Application::get().eventBus());
+    auto& bus     = Engine::Core::Application::get().eventBus();
+    auto& physics = world.addSystem<Engine::Physics::PhysicsSystem>(bus);
+
+    // Give scripts the body API (velocity/impulse/force) + collision and
+    // trigger callbacks. Done after BOTH systems exist.
+    scripts.usePhysics(physics.world(), bus);
 
     // Entities are pure DATA from scenes/<name>.json. A brand-new scene
     // (just created in the editor) has no file yet -- that's fine, it
