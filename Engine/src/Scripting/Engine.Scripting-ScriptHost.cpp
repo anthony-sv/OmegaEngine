@@ -73,10 +73,17 @@ namespace Engine::Scripting
         bool       ready { false };
         NativeApi  api {};
 
+        // The world bound last frame. When it changes (a scene switch) the
+        // managed instance table is cleared so recycled entity ids don't
+        // inherit stale scripts.
+        ECS::Registry* lastRegistry { nullptr };
+
         // Managed entry points (OmegaEngine.Bootstrap.*).
         void (__cdecl *Init)(void*)                             { nullptr };
         void (__cdecl *Tick)(std::uint32_t, char const*, float) { nullptr };
         void (__cdecl *LoadAssembly)(char const*)              { nullptr };
+        void (__cdecl *BeginFrame)()                           { nullptr };
+        void (__cdecl *Clear)()                                { nullptr };
 
         load_assembly_and_get_function_pointer_fn load_assembly { nullptr };
     };
@@ -92,7 +99,43 @@ namespace Engine::Scripting
 
     bool ScriptHost::ready() const { return m_impl->ready; }
 
-    void ScriptHost::bindRegistry(ECS::Registry* registry) { g_registry = registry; }
+    void ScriptHost::bindRegistry(ECS::Registry* registry)
+    {
+        g_registry = registry;
+
+        // A different world this frame -> drop the previous world's script
+        // instances (their entity ids belong to a registry that's gone).
+        if (registry != m_impl->lastRegistry)
+        {
+            if (m_impl->ready && m_impl->Clear)
+                m_impl->Clear();
+            m_impl->lastRegistry = registry;
+        }
+    }
+
+    void ScriptHost::beginFrame()
+    {
+        if (m_impl->ready && m_impl->BeginFrame)
+            m_impl->BeginFrame();
+    }
+
+    void ScriptHost::loadGame(std::filesystem::path const& gameAssembly)
+    {
+        if (!m_impl->ready || !m_impl->LoadAssembly)
+            return;
+
+        auto const abs = std::filesystem::absolute(gameAssembly);
+        if (!std::filesystem::exists(abs))
+        {
+            std::println(
+                std::cerr, 
+                "[Ω::Scripting] no game assembly at '{}' (no project scripts)",
+                abs.string()
+            );
+            return;
+        }
+        m_impl->LoadAssembly(abs.string().c_str());
+    }
 
     bool ScriptHost::ensureInitialized(std::filesystem::path const& managedDir)
     {
@@ -162,9 +205,11 @@ namespace Engine::Scripting
             return true;
         };
 
-        if (!resolve(L"Init",         reinterpret_cast<void**>(&m_impl->Init))) return false;
-        if (!resolve(L"Tick",         reinterpret_cast<void**>(&m_impl->Tick))) return false;
+        if (!resolve(L"Init",         reinterpret_cast<void**>(&m_impl->Init)))         return false;
+        if (!resolve(L"Tick",         reinterpret_cast<void**>(&m_impl->Tick)))         return false;
         if (!resolve(L"LoadAssembly", reinterpret_cast<void**>(&m_impl->LoadAssembly))) return false;
+        if (!resolve(L"BeginFrame",   reinterpret_cast<void**>(&m_impl->BeginFrame)))   return false;
+        if (!resolve(L"Clear",        reinterpret_cast<void**>(&m_impl->Clear)))        return false;
 
         // 4. Hand C# the engine's function table.
         m_impl->api.GetPosition = &Entity_GetPosition;
@@ -173,13 +218,8 @@ namespace Engine::Scripting
         m_impl->ready = true;
         std::println("[Ω::Scripting] CoreCLR hosted; OmegaEngine.dll loaded from '{}'", managedDir.string());
 
-        // 5. Load the project's game assembly (deployed next to the exe) so
-        //    its scripts (e.g. Game.Mover) are discoverable.
-        if (auto const gameDll = managedDir / "Game.dll"; std::filesystem::exists(gameDll))
-            m_impl->LoadAssembly(gameDll.string().c_str());
-        else
-            std::println(std::cerr, "[Ω::Scripting] no Game.dll at '{}' (no project scripts)", gameDll.string());
-
+        // The project's game assembly is loaded separately (loadGame), from the
+        // project's build output, so it can be watched and hot-reloaded.
         return true;
     }
 

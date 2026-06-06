@@ -1310,8 +1310,12 @@ void EditorLayer::setupWorld(Engine::Scene::World& world)
     world.addSystem<Engine::Systems::AnimationSystem>();
 
     // C# scripts -- gameplay logic from the project's managed assembly.
-    // managedDir = exe dir, where OmegaEngine.dll is deployed post-build.
-    world.addSystem<Engine::Scripting::ScriptSystem>(Engine::Core::Paths::executableDir());
+    // managedDir = exe dir (OmegaEngine.dll, deployed post-build); the game
+    // assembly is loaded from the PROJECT's build output (cwd = project root)
+    // so a `dotnet build` is watched and hot-reloaded.
+    world.addSystem<Engine::Scripting::ScriptSystem>(
+        Engine::Core::Paths::executableDir(),
+        "scripts/bin/Debug/net10.0/Game.dll");
 
     world.addSystem<Engine::Physics::PhysicsSystem>(Engine::Core::Application::get().eventBus());
 

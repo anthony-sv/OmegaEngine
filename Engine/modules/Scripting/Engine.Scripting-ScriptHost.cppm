@@ -61,8 +61,17 @@ namespace Engine::Scripting
 
         [[nodiscard]] bool ready() const;
 
+        // Load the project's game assembly (e.g. Game.dll) into a collectible
+        // context and watch it for rebuilds (hot reload). Idempotent.
+        void loadGame(std::filesystem::path const& gameAssembly);
+
         // The ECS world the script API reads/writes (set before updates).
+        // Switching worlds clears the previous world's script instances.
         void bindRegistry(ECS::Registry* registry);
+
+        // Apply any pending hot reload. Call once per update batch, on the
+        // main thread, before ticking.
+        void beginFrame();
 
         // Tick one entity's script: the managed runtime instantiates it on
         // first sight (keyed by entity id) and drives OnUpdate.

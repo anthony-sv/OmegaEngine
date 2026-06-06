@@ -42,14 +42,26 @@ namespace Engine::Scripting
     {
     public:
 
-        ScriptSystem(ECS::Registry& registry, std::filesystem::path managedDir)
-            : m_registry   { registry }
-            , m_managedDir { std::move(managedDir) }
+        // `managedDir` holds the runtime (OmegaEngine.dll + runtimeconfig.json),
+        // usually the executable directory. `gameAssembly` is the project's
+        // compiled scripts (e.g. <project>/scripts/bin/.../Game.dll); it is
+        // loaded from there so a rebuild can be watched and hot-reloaded. An
+        // empty path means the project ships no scripts.
+        ScriptSystem(ECS::Registry& registry,
+                     std::filesystem::path managedDir,
+                     std::filesystem::path gameAssembly = {}
+        )
+            : m_registry     { registry }
+            , m_managedDir   { std::move(managedDir) }
+            , m_gameAssembly { std::move(gameAssembly) }
         {}
 
         void onInit() override
         {
-            ScriptHost::instance().ensureInitialized(m_managedDir);
+            auto& host = ScriptHost::instance();
+            host.ensureInitialized(m_managedDir);
+            if (!m_gameAssembly.empty())
+                host.loadGame(m_gameAssembly);
         }
 
         void onUpdate(float dt) override
@@ -59,6 +71,7 @@ namespace Engine::Scripting
                 return;
 
             host.bindRegistry(&m_registry);
+            host.beginFrame();      // apply any pending hot reload (main thread)
 
             // The managed runtime instantiates each script on first sight and
             // keys instances by entity id, so we just tick every one.
@@ -69,6 +82,7 @@ namespace Engine::Scripting
     private:
         ECS::Registry&        m_registry;
         std::filesystem::path m_managedDir;
+        std::filesystem::path m_gameAssembly;
 
     }; // class ScriptSystem
 
