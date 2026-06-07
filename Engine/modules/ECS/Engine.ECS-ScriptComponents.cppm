@@ -27,14 +27,22 @@ namespace Engine::ECS
     // engine components; this is the one generic hook that binds an entity
     // to a script class.
     //
-    // Pure DATA: just the managed type name (e.g. "Game.Mover"). The managed
-    // runtime keys script INSTANCES by entity id, so there is no runtime
-    // handle to carry here -- the component stays trivially serializable.
+    // Pure DATA: the managed type name (e.g. "Game.Mover") plus any authored
+    // field overrides. The managed runtime keys script INSTANCES by entity id,
+    // so there is no runtime handle to carry here -- the component stays
+    // trivially serializable.
+    //
+    // `fields` holds editor-authored overrides for a script's serializable
+    // fields (public / [SerializeField]), keyed by field name, value stored as
+    // a string. The C# side converts to the real field type by reflection; a
+    // field absent here keeps the script's default. (std::map for stable,
+    // diff-friendly serialization order.)
     // -----------------------------------------------------------------
 
     export struct ScriptComponent
     {
-        std::string className {};      // the C# class to run, e.g. "Game.Mover"
+        std::string                        className {};   // the C# class to run, e.g. "Game.Mover"
+        std::map<std::string, std::string> fields    {};   // authored field overrides (value as string)
 	}; // struct ScriptComponent
 
 } // namespace ECS

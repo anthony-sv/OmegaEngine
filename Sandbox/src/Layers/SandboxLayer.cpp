@@ -50,8 +50,7 @@ void SandboxLayer::onAttach()
             std::println("[Ω::Physics] trigger {} entered by {}", nameOf(e.sensor), nameOf(e.other));
         });
 
-    // A copy of the project's scene list, captured by the per-scene
-    // hooks so SPACE can cycle through it.
+    // The project's scene list -- one world is created per entry below.
     auto const sceneNames = m_project.scenes();
 
     // Per-scene setup. Systems + input bindings are engine CODE; the
@@ -59,7 +58,7 @@ void SandboxLayer::onAttach()
     // no code-built fallback. Textures referenced by the scene resolve
     // through the AssetManager during load. (Working dir == project
     // root, so the relative path lands inside the project.)
-    auto setup = [this, sceneNames](Engine::Scene::World& w)
+    auto setup = [this](Engine::Scene::World& w)
     {
         std::println("[Ω::Sandbox] enter scene '{}'", w.name());
 
@@ -88,21 +87,9 @@ void SandboxLayer::onAttach()
         // trigger callbacks. Done after BOTH systems exist.
         scripts.usePhysics(physics.world(), bus);
 
-        // SPACE -> cycle to the NEXT scene in the project's list. The
-        // "next" is computed from data (this world's position in the
-        // list), so no scene name is hardcoded.
-        w.actions().bind(Engine::Core::Key::Space, "NextScene");
-        w.setOnAction([this, sceneNames](Engine::Scene::World& world, Engine::Core::ActionEvent const& a)
-        {
-            if (a.name != "NextScene" || !a.started || sceneNames.size() < 2)
-                return;
-
-            auto const it  = std::ranges::find(sceneNames, world.name());
-            auto const idx = (it == sceneNames.end())
-                           ? std::size_t { 0 }
-                           : static_cast<std::size_t>(std::distance(sceneNames.begin(), it));
-            m_sceneManager.switchTo(sceneNames[(idx + 1) % sceneNames.size()]);
-        });
+        // NOTE: the runtime does NOT bind any scene-switching keys. Changing
+        // scenes is GAMEPLAY -- a project script drives it (or the editor) --
+        // so the runtime never steals a key from the project.
 
         auto& assets    = Engine::Core::Application::get().assets();
         auto const file = "scenes/" + w.name() + ".json";
@@ -127,7 +114,7 @@ void SandboxLayer::onAttach()
     if (!sceneNames.empty())
         m_sceneManager.switchTo(m_project.startupScene());
 
-    std::println("[Ω::SandboxLayer] {} scene(s) registered — SPACE to cycle, Ctrl+S to save",
+    std::println("[Ω::SandboxLayer] {} scene(s) registered — Ctrl+S to save",
                  sceneNames.size());
 }
 
@@ -153,6 +140,10 @@ void SandboxLayer::onUpdate(float dt)
                 std::println(std::cerr, "[Ω::SandboxLayer] save failed: {}", r.error().message);
         }
     }
+
+    // A follow-cam script (if any) steers this camera; bind it before ticking.
+    if (m_camera)
+        Engine::Scripting::ScriptHost::instance().bindCamera(&*m_camera);
 
     // Space switches scenes (bound per scene to "NextScene"). The manager
     // applies any pending switch at the frame boundary, then ticks systems.

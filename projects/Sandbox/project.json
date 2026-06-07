@@ -9,7 +9,7 @@
         "Level1",
         "ScriptTest"
     ],
-    "startupScene": "ScriptTest",
+    "startupScene": "Level1",
     "window": {
         "decorated": true,
         "height": 720,

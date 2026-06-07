@@ -6,6 +6,7 @@
         "type": 4
       },
       "Name": "CameraBound",
+      "Script": { "className": "Game.CameraFollow" },
       "Transform": {
         "position": [
           0.0,
@@ -24,6 +25,9 @@
         "type": 3
       },
       "Name": "Tree",
+      "Script": { "className": "Game.Pickup" },
+      "RigidBody2D": { "fixedRotation": false, "gravityScale": 1.0, "mass": 1.0, "type": 0 },
+      "BoxCollider2D": { "density": 1.0, "friction": 0.3, "isTrigger": true, "offset": [0.0, 0.0], "restitution": 0.0, "size": [1.0, 1.5] },
       "SpriteRenderer": {
         "color": [
           1.0,
@@ -111,7 +115,7 @@
     {
       "BoxCollider2D": {
         "density": 1.0,
-        "friction": 0.30000001192092896,
+        "friction": 0.0,
         "isTrigger": false,
         "offset": [
           0.0,
@@ -124,6 +128,7 @@
         ]
       },
       "Name": "Mario",
+      "Script": { "className": "Game.PlayerController" },
       "RigidBody2D": {
         "fixedRotation": true,
         "gravityScale": 1.0,
@@ -157,13 +162,6 @@
         "scale": [
           0.5,
           0.5
-        ]
-      },
-      "Velocity2D": {
-        "angular": 0.0,
-        "linear": [
-          -1.600000023841858,
-          2.5
         ]
       }
     },

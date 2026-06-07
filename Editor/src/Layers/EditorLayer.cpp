@@ -398,11 +398,85 @@ namespace
             auto& sc = entity.get<ScriptComponent>();
             if (ImGui::CollapsingHeader("Script", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                char cls[128] = {};
-                sc.className.copy(cls, sizeof(cls) - 1);
-                if (ImGui::InputText("Class", cls, sizeof(cls)))
-                    sc.className = cls;
-                ImGui::TextDisabled("C# class in the project's Game.dll, e.g. Game.Mover");
+                // Pick from the Script subclasses discovered in the project's
+                // Game.dll. The current value still shows even if it isn't in
+                // the list yet (so it round-trips through the scene file).
+                auto const classes = Engine::Scripting::ScriptHost::instance().scriptClasses();
+                std::string const preview = sc.className.empty() ? "(none)" : sc.className;
+                if (ImGui::BeginCombo("Class", preview.c_str()))
+                {
+                    if (ImGui::Selectable("(none)", sc.className.empty()))
+                        sc.className.clear();
+                    for (auto const& cls : classes)
+                    {
+                        bool const selected = (cls == sc.className);
+                        if (ImGui::Selectable(cls.c_str(), selected))
+                            sc.className = cls;
+                        if (selected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+                if (classes.empty())
+                    ImGui::TextDisabled("No scripts compiled yet — save a .cs in the project's scripts/.");
+
+                // Per-field editors for the chosen class's exposed fields
+                // (public / [SerializeField]). Edits are stored as strings on
+                // the ScriptComponent (saved in the scene; the C# side converts
+                // to the real type). A field left untouched keeps its default.
+                using FieldType = Engine::Scripting::ScriptHost::ScriptFieldType;
+                auto const toF = [](std::string const& s) { float v = 0.0f; std::from_chars(s.data(), s.data() + s.size(), v); return v; };
+                auto const toI = [](std::string const& s) { int   v = 0;    std::from_chars(s.data(), s.data() + s.size(), v); return v; };
+
+                for (auto const& f : Engine::Scripting::ScriptHost::instance().describeFields(sc.className))
+                {
+                    auto const it     = sc.fields.find(f.name);
+                    std::string value = (it != sc.fields.end()) ? it->second : f.value;   // override or default
+                    bool changed      = false;
+
+                    switch (f.type)
+                    {
+                        case FieldType::Float:
+                        {
+                            float v = toF(value);
+                            if (ImGui::DragFloat(f.name.c_str(), &v, 0.01f)) { value = std::format("{}", v); changed = true; }
+                            break;
+                        }
+                        case FieldType::Int:
+                        {
+                            int v = toI(value);
+                            if (ImGui::DragInt(f.name.c_str(), &v)) { value = std::format("{}", v); changed = true; }
+                            break;
+                        }
+                        case FieldType::Bool:
+                        {
+                            bool v = (value == "true");
+                            if (ImGui::Checkbox(f.name.c_str(), &v)) { value = v ? "true" : "false"; changed = true; }
+                            break;
+                        }
+                        case FieldType::String:
+                        {
+                            char buf[256] = {};
+                            value.copy(buf, sizeof(buf) - 1);
+                            if (ImGui::InputText(f.name.c_str(), buf, sizeof(buf))) { value = buf; changed = true; }
+                            break;
+                        }
+                        case FieldType::Vec2:
+                        {
+                            float v[2] = { 0.0f, 0.0f };
+                            if (auto const sp = value.find(' '); sp != std::string::npos)
+                            {
+                                std::from_chars(value.data(), value.data() + sp, v[0]);
+                                std::from_chars(value.data() + sp + 1, value.data() + value.size(), v[1]);
+                            }
+                            if (ImGui::DragFloat2(f.name.c_str(), v, 0.01f)) { value = std::format("{} {}", v[0], v[1]); changed = true; }
+                            break;
+                        }
+                    }
+
+                    if (changed)
+                        sc.fields[f.name] = value;
+                }
             }
         }
 
@@ -526,6 +600,11 @@ void EditorLayer::onUpdate(float dt)
     using Engine::Core::Key;
     using Input = Engine::Core::Input;
 
+    // A follow-cam script (if any) steers this camera in Play mode; bind it
+    // before ticking. (In Edit mode systems don't tick, so it stays put.)
+    if (m_camera)
+        Engine::Scripting::ScriptHost::instance().bindCamera(&*m_camera);
+
     // Always pump the manager so the scene LOADS (the deferred initial
     // switch runs enter()) and actions route -- but only TICK the world's
     // systems in Play mode, so Edit mode stays static for authoring.
@@ -552,7 +631,9 @@ void EditorLayer::onUpdate(float dt)
     // where integrating over fixedDt is correct.
     bool const ctrl = Input::isKeyDown(Key::LeftControl);
 
-    if (!m_camera || !m_viewportHovered) return;
+    // In Play mode the GAME owns the keyboard (a script may drive WASD and the
+    // camera), so the editor's own camera controls stand down.
+    if (!m_camera || !m_viewportHovered || m_playing) return;
 
     // ── Camera controls ─────────────────────────────────────────
     // WASD = pan, Q/E = rotate, mouse wheel = zoom. Driven by the
@@ -868,8 +949,9 @@ void EditorLayer::onImGuiRender()
         m_viewportHovered = ImGui::IsWindowHovered();
 
         // Scroll wheel zoom — lives here (not in onUpdate) because
-        // ImGui::GetIO().MouseWheel is only valid after NewFrame().
-        if (m_viewportHovered && m_camera)
+        // ImGui::GetIO().MouseWheel is only valid after NewFrame(). Stands
+        // down in Play mode so a follow-cam script owns the camera.
+        if (m_viewportHovered && m_camera && !m_playing)
         {
             constexpr float zoomSpeed = 0.15f;
             float const wheel = ImGui::GetIO().MouseWheel;
@@ -1228,6 +1310,11 @@ void EditorLayer::togglePlay()
             std::println(std::cerr, "[Ω::EditorLayer] restore failed: {}", r.error().message);
         logConsole(ICON_FA_STOP " stop  (restored)");
     }
+
+    // Play/Stop restores into the SAME world, so the registry pointer never
+    // changes and the host's automatic clear doesn't fire -- drop the previous
+    // session's script instances here so they don't accumulate.
+    Engine::Scripting::ScriptHost::instance().clearInstances();
 }
 
 void EditorLayer::switchScene(std::string name)

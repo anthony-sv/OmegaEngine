@@ -203,7 +203,11 @@ namespace Engine::Scene
 
             if (e.has<ScriptComponent>())
             {
-                je["Script"] = { { "className", e.get<ScriptComponent>().className } };
+                auto const& sc = e.get<ScriptComponent>();
+                json js = { { "className", sc.className } };
+                if (!sc.fields.empty())
+                    js["fields"] = sc.fields;   // map<string,string> -> JSON object
+                je["Script"] = std::move(js);
             }
 
             entities.push_back(std::move(je));
@@ -381,8 +385,11 @@ namespace Engine::Scene
 
             if (je.contains("Script"))
             {
+                auto const& js = je["Script"];
                 ScriptComponent sc;
-                sc.className = je["Script"].value("className", std::string {});
+                sc.className = js.value("className", std::string {});
+                if (js.contains("fields"))
+                    sc.fields = js["fields"].get<std::map<std::string, std::string>>();
                 e.add<ScriptComponent>(std::move(sc));
             }
 

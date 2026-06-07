@@ -105,7 +105,7 @@ namespace Engine::Scripting
             {
                 ScriptHost::instance().dispatchPhysicsEvent(
                     static_cast<std::uint32_t>(e.a.id()), static_cast<std::uint32_t>(e.b.id()),
-                    PhysicsEventKind::CollisionEnter);
+                    PhysicsEventKind::CollisionEnter, e.manifold.normal.x, e.manifold.normal.y);
             });
             bus.subscribe<Physics::CollisionExitEvent>([](Physics::CollisionExitEvent const& e)
             {

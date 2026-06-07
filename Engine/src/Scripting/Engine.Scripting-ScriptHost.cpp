@@ -29,6 +29,7 @@ namespace Engine::Scripting
         // safe; the ScriptSystem refreshes them before each batch of updates.
         ECS::Registry*          g_registry = nullptr;   // the world being ticked
         Physics::PhysicsWorld*  g_physics  = nullptr;   // its bodies (may be null)
+        Renderer::Camera2D*     g_camera   = nullptr;   // the view camera (may be null)
         float                   g_delta    = 0.0f;       // this frame's dt
         float                   g_elapsed  = 0.0f;       // seconds since the host booted
 
@@ -192,6 +193,22 @@ namespace Engine::Scripting
         float __cdecl Time_Delta()   { return g_delta;   }
         float __cdecl Time_Elapsed() { return g_elapsed; }
 
+        // -- Camera (the view; e.g. for a follow script) ----------------
+
+        void __cdecl Camera_GetPosition(Vec2* out)
+        {
+            if (g_camera) { auto const p = g_camera->position(); *out = { p.x, p.y }; }
+            else          { *out = { 0.0f, 0.0f }; }
+        }
+
+        void __cdecl Camera_SetPosition(Vec2* in)
+        {
+            if (g_camera) g_camera->setPosition({ in->x, in->y });
+        }
+
+        float __cdecl Camera_GetZoom()        { return g_camera ? g_camera->zoom() : 1.0f; }
+        void  __cdecl Camera_SetZoom(float z) { if (g_camera) g_camera->setZoom(z); }
+
         // -- Entity lifecycle / lookup ----------------------------------
 
         std::uint32_t __cdecl Entity_Create(char const* name)
@@ -232,6 +249,23 @@ namespace Engine::Scripting
             return (g_registry && g_registry->entityFromId(id).valid()) ? 1 : 0;
         }
 
+        // Authored field override for an entity's ScriptComponent, by name.
+        // Returns a pointer into the component's string (the managed caller
+        // copies it immediately) or nullptr if there's no override.
+        char const* __cdecl Entity_GetScriptField(std::uint32_t id, char const* name)
+        {
+            if (!g_registry || !name)
+                return nullptr;
+            auto e = g_registry->entityFromId(id);
+            if (e.valid() && e.has<ECS::ScriptComponent>())
+            {
+                auto const& fields = e.get<ECS::ScriptComponent>().fields;
+                if (auto const it = fields.find(name); it != fields.end())
+                    return it->second.c_str();
+            }
+            return nullptr;
+        }
+
         // Mirror of the managed NativeApi struct -- SAME ORDER, cdecl. The
         // managed side reads this struct by pointer, so the field layout is
         // a hard contract: keep both lists in lockstep.
@@ -266,6 +300,13 @@ namespace Engine::Scripting
             void          (__cdecl *Destroy)(std::uint32_t);
             std::uint32_t (__cdecl *Find)   (char const*);
             int           (__cdecl *IsValid)(std::uint32_t);
+
+            char const*   (__cdecl *GetScriptField)(std::uint32_t, char const*);
+
+            void  (__cdecl *GetCameraPosition)(Vec2*);
+            void  (__cdecl *SetCameraPosition)(Vec2*);
+            float (__cdecl *GetCameraZoom)();
+            void  (__cdecl *SetCameraZoom)(float);
         };
 
         // ── Project-script build helpers ──
@@ -327,6 +368,28 @@ namespace Engine::Scripting
             }
             return newest;
         }
+
+        // Sink for EnumScriptClasses: the managed runtime calls this once per
+        // Script subclass name (synchronously, on this thread), and we collect
+        // into g_classSink for scriptClasses() to return.
+        std::vector<std::string>* g_classSink = nullptr;
+
+        void __cdecl collectScriptClass(char const* name)
+        {
+            if (g_classSink && name)
+                g_classSink->emplace_back(name);
+        }
+
+        // Sink for DescribeFields: (name, type tag, default value string) per
+        // editable field, collected into g_fieldSink (synchronous call).
+        std::vector<ScriptHost::ScriptFieldDesc>* g_fieldSink = nullptr;
+
+        void __cdecl collectField(char const* name, std::uint8_t type, char const* value)
+        {
+            if (g_fieldSink && name)
+                g_fieldSink->push_back(
+                    { name, static_cast<ScriptHost::ScriptFieldType>(type), value ? value : "" });
+        }
     }
 
     // =================================================================
@@ -349,7 +412,9 @@ namespace Engine::Scripting
         void (__cdecl *LoadAssembly)(char const*)                         { nullptr };
         void (__cdecl *BeginFrame)()                                      { nullptr };
         void (__cdecl *Clear)()                                           { nullptr };
-        void (__cdecl *OnPhysicsEvent)(std::uint32_t, std::uint32_t, std::uint8_t) { nullptr };
+        void (__cdecl *OnPhysicsEvent)(std::uint32_t, std::uint32_t, std::uint8_t, float, float) { nullptr };
+        void (__cdecl *EnumScriptClasses)(void(__cdecl*)(char const*))            { nullptr };
+        void (__cdecl *DescribeFields)(char const*, void(__cdecl*)(char const*, std::uint8_t, char const*)) { nullptr };
 
         load_assembly_and_get_function_pointer_fn load_assembly { nullptr };
 
@@ -388,6 +453,8 @@ namespace Engine::Scripting
 
     void ScriptHost::bindPhysics(Physics::PhysicsWorld* physics) { g_physics = physics; }
 
+    void ScriptHost::bindCamera(Renderer::Camera2D* camera) { g_camera = camera; }
+
     void ScriptHost::setTime(float dt)
     {
         g_delta    = dt;
@@ -400,10 +467,43 @@ namespace Engine::Scripting
             m_impl->BeginFrame();
     }
 
-    void ScriptHost::dispatchPhysicsEvent(std::uint32_t a, std::uint32_t b, PhysicsEventKind kind)
+    void ScriptHost::clearInstances()
+    {
+        if (m_impl->ready && m_impl->Clear)
+            m_impl->Clear();
+    }
+
+    std::vector<std::string> ScriptHost::scriptClasses()
+    {
+        std::vector<std::string> result;
+        if (m_impl->ready && m_impl->EnumScriptClasses)
+        {
+            // The managed call is synchronous, so a file-static collection
+            // point is safe (no re-entrancy across threads).
+            g_classSink = &result;
+            m_impl->EnumScriptClasses(&collectScriptClass);
+            g_classSink = nullptr;
+        }
+        return result;
+    }
+
+    std::vector<ScriptHost::ScriptFieldDesc> ScriptHost::describeFields(std::string const& className)
+    {
+        std::vector<ScriptFieldDesc> result;
+        if (m_impl->ready && m_impl->DescribeFields && !className.empty())
+        {
+            g_fieldSink = &result;
+            m_impl->DescribeFields(className.c_str(), &collectField);
+            g_fieldSink = nullptr;
+        }
+        return result;
+    }
+
+    void ScriptHost::dispatchPhysicsEvent(std::uint32_t a, std::uint32_t b, PhysicsEventKind kind,
+                                          float normalX, float normalY)
     {
         if (m_impl->ready && m_impl->OnPhysicsEvent)
-            m_impl->OnPhysicsEvent(a, b, static_cast<std::uint8_t>(kind));   // raw byte at the ABI
+            m_impl->OnPhysicsEvent(a, b, static_cast<std::uint8_t>(kind), normalX, normalY);
     }
 
     void ScriptHost::loadGame(std::filesystem::path const& gameAssembly)
@@ -558,7 +658,9 @@ namespace Engine::Scripting
         if (!resolve(L"LoadAssembly",   reinterpret_cast<void**>(&m_impl->LoadAssembly)))   return false;
         if (!resolve(L"BeginFrame",     reinterpret_cast<void**>(&m_impl->BeginFrame)))     return false;
         if (!resolve(L"Clear",          reinterpret_cast<void**>(&m_impl->Clear)))          return false;
-        if (!resolve(L"OnPhysicsEvent", reinterpret_cast<void**>(&m_impl->OnPhysicsEvent))) return false;
+        if (!resolve(L"OnPhysicsEvent",    reinterpret_cast<void**>(&m_impl->OnPhysicsEvent)))    return false;
+        if (!resolve(L"EnumScriptClasses", reinterpret_cast<void**>(&m_impl->EnumScriptClasses))) return false;
+        if (!resolve(L"DescribeFields",    reinterpret_cast<void**>(&m_impl->DescribeFields)))    return false;
 
         // 4. Hand C# the engine's function table (order MUST match the
         //    managed NativeApi struct).
@@ -583,10 +685,15 @@ namespace Engine::Scripting
             .MousePosition = &Input_MousePosition,
             .TimeDelta     = &Time_Delta,
             .TimeElapsed   = &Time_Elapsed,
-            .Create        = &Entity_Create,
-            .Destroy       = &Entity_Destroy,
-            .Find          = &Entity_Find,
-            .IsValid       = &Entity_IsValid,
+            .Create         = &Entity_Create,
+            .Destroy        = &Entity_Destroy,
+            .Find           = &Entity_Find,
+            .IsValid        = &Entity_IsValid,
+            .GetScriptField = &Entity_GetScriptField,
+            .GetCameraPosition = &Camera_GetPosition,
+            .SetCameraPosition = &Camera_SetPosition,
+            .GetCameraZoom     = &Camera_GetZoom,
+            .SetCameraZoom     = &Camera_SetZoom,
         };
         m_impl->Init(&m_impl->api);
         m_impl->ready = true;

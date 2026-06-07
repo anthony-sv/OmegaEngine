@@ -2,6 +2,7 @@ export module Engine.Scripting:ScriptHost;
 
 import Engine.ECS;       // ECS::Registry (the script API operates on it)
 import Engine.Physics;   // Physics::PhysicsWorld (script-driven body dynamics)
+import Engine.Renderer;  // Renderer::Camera2D (script-driven camera)
 import std;
 
 /*═══════════════════════════════════════════════════════════════════════════════
@@ -98,6 +99,10 @@ namespace Engine::Scripting
         // force). May be null for worlds without physics. Set before updates.
         void bindPhysics(Physics::PhysicsWorld* physics);
 
+        // The view camera scripts can read/move (e.g. a follow camera). May be
+        // null. Set before updates.
+        void bindCamera(Renderer::Camera2D* camera);
+
         // Publish this frame's dt (Time.Delta) and accumulate elapsed time.
         void setTime(float dt);
 
@@ -105,9 +110,35 @@ namespace Engine::Scripting
         // main thread, before ticking.
         void beginFrame();
 
+        // Drop all live script instances. bindRegistry does this automatically
+        // on a world change, but the editor's Play/Stop restores into the SAME
+        // world (registry pointer unchanged), so it must clear explicitly.
+        void clearInstances();
+
+        // Full names of every concrete Script subclass in the loaded game
+        // assembly (for the editor's class picker). Empty if no scripts loaded.
+        [[nodiscard]] std::vector<std::string> scriptClasses();
+
+        // A script field exposed to the editor. The value crosses as a STRING;
+        // the C# side converts to/from the real field type by reflection.
+        enum class ScriptFieldType : std::uint8_t { Float, Int, Bool, String, Vec2 };
+        struct ScriptFieldDesc
+        {
+            std::string     name;
+            ScriptFieldType type;
+            std::string     value;   // default value (from a fresh instance)
+        };
+
+        // The editable (public / [SerializeField]) fields of `className`, each
+        // with its type and default value, for the inspector to render.
+        [[nodiscard]] std::vector<ScriptFieldDesc> describeFields(std::string const& className);
+
         // Route a physics contact/sensor event to the involved scripts'
-        // OnCollision*/OnTrigger* hooks.
-        void dispatchPhysicsEvent(std::uint32_t a, std::uint32_t b, PhysicsEventKind kind);
+        // OnCollision*/OnTrigger* hooks. `normal` is the contact normal (points
+        // a -> b; zero for exits/triggers); the managed side re-orients it per
+        // side so it points away from the other entity.
+        void dispatchPhysicsEvent(std::uint32_t a, std::uint32_t b, PhysicsEventKind kind,
+                                  float normalX = 0.0f, float normalY = 0.0f);
 
         // Tick one entity's script: the managed runtime instantiates it on
         // first sight (keyed by entity id) and drives OnUpdate.

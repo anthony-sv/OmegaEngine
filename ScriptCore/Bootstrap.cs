@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -80,6 +82,57 @@ public static class Bootstrap
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static void Clear() => Scripts.Clear();
 
+    // Hand the native sink the full name of every concrete Script subclass in
+    // the loaded game assembly. Powers the editor's class picker.
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static unsafe void EnumScriptClasses(delegate* unmanaged[Cdecl]<nint, void> sink)
+    {
+        if (_game is null)
+            return;
+
+        foreach (var assembly in _game.Assemblies)
+        {
+            Type[] types;
+            try { types = assembly.GetTypes(); }
+            catch { continue; }     // skip an assembly whose types won't all load
+
+            foreach (var type in types)
+            {
+                if (!type.IsClass || type.IsAbstract
+                    || !type.IsAssignableTo(typeof(Script)) || type.FullName is not { } name)
+                    continue;
+
+                nint utf8 = Marshal.StringToCoTaskMemUTF8(name);
+                try { sink(utf8); }
+                finally { Marshal.FreeCoTaskMem(utf8); }
+            }
+        }
+    }
+
+    // Describe a class's editable fields to the native sink as
+    // (name, type tag, default value string). Powers the inspector widgets.
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static unsafe void DescribeFields(nint classNameUtf8, delegate* unmanaged[Cdecl]<nint, byte, nint, void> sink)
+    {
+        if (ResolveType(Marshal.PtrToStringUTF8(classNameUtf8) ?? "") is not { } type
+            || !type.IsAssignableTo(typeof(Script)))
+            return;
+
+        object? defaults = null;
+        try { defaults = Activator.CreateInstance(type); } catch { /* leave defaults blank */ }
+
+        foreach (var field in EditableFields(type))
+        {
+            var tag   = TagOf(field.FieldType)!.Value;
+            var value = Format(tag, defaults is null ? null : field.GetValue(defaults));
+
+            nint name = Marshal.StringToCoTaskMemUTF8(field.Name);
+            nint val  = Marshal.StringToCoTaskMemUTF8(value);
+            try { sink(name, (byte)tag, val); }
+            finally { Marshal.FreeCoTaskMem(name); Marshal.FreeCoTaskMem(val); }
+        }
+    }
+
     // Tick an entity's script: instantiate it on first sight (by class name),
     // recreate it if the class changed or its assembly was unloaded, then drive
     // OnUpdate. One entry point keeps the native side trivial.
@@ -98,18 +151,20 @@ public static class Bootstrap
     // Route a physics contact/sensor event to both involved scripts. `kind`
     // matches the native dispatcher (see PhysicsEvent).
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    public static void OnPhysicsEvent(uint a, uint b, byte kind)
+    public static void OnPhysicsEvent(uint a, uint b, byte kind, float normalX, float normalY)
     {
-        var which = (PhysicsEventKind)kind;
-        Notify(a, b, which);
-        Notify(b, a, which);
+        var which  = (PhysicsEventKind)kind;
+        var normal = new Vector2(normalX, normalY);   // points a -> b
+        // Re-orient so each side's normal points AWAY from the other entity.
+        Notify(a, b, which, -normal);
+        Notify(b, a, which,  normal);
     }
 
     // Mirrors the native Scripting::PhysicsEventKind -- crosses the boundary as
     // a byte, so the underlying type AND order MUST stay in lockstep.
     private enum PhysicsEventKind : byte { CollisionEnter, CollisionExit, TriggerEnter, TriggerExit }
 
-    private static void Notify(uint self, uint other, PhysicsEventKind kind)
+    private static void Notify(uint self, uint other, PhysicsEventKind kind, Vector2 normal)
     {
         if (!Scripts.TryGetValue(self, out var script) || script is null)
             return;
@@ -117,8 +172,8 @@ public static class Bootstrap
         var e = new Entity(other);
         switch (kind)
         {
-            case PhysicsEventKind.CollisionEnter: script.OnCollisionEnter(e); break;
-            case PhysicsEventKind.CollisionExit:  script.OnCollisionExit(e);  break;
+            case PhysicsEventKind.CollisionEnter: script.OnCollisionEnter(new Collision(e, normal)); break;
+            case PhysicsEventKind.CollisionExit:  script.OnCollisionExit(new Collision(e, normal));  break;
             case PhysicsEventKind.TriggerEnter:   script.OnTriggerEnter(e);   break;
             case PhysicsEventKind.TriggerExit:    script.OnTriggerExit(e);    break;
         }
@@ -175,16 +230,16 @@ public static class Bootstrap
         Console.WriteLine($"[C#] hot reload complete ({snapshots.Count} script(s) restored)");
     }
 
-    // Public instance fields whose type lives OUTSIDE the collectible game
-    // context -- those are safe to carry across an unload. A field of a
-    // game-defined type is skipped (carrying it would pin the old assembly and
-    // block the unload).
+    // Serializable fields (public / [SerializeField]) whose type lives OUTSIDE
+    // the collectible game context -- those are safe to carry across an unload.
+    // A field of a game-defined type is skipped (carrying it would pin the old
+    // assembly and block the unload).
     private static Dictionary<string, object?> SnapshotFields(Script script)
     {
         var result = new Dictionary<string, object?>();
-        foreach (var field in script.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var field in SerializableFields(script.GetType()))
         {
-            if (field.Name == nameof(Script.Entity) || !IsTransferable(field.FieldType))
+            if (!IsTransferable(field.FieldType))
                 continue;
 
             var value = field.GetValue(script);
@@ -201,7 +256,7 @@ public static class Bootstrap
         var type = script.GetType();
         foreach (var (name, value) in fields)
         {
-            if (type.GetField(name, BindingFlags.Public | BindingFlags.Instance) is not { } field)
+            if (type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance) is not { } field)
                 continue;
             if (value is null)
             {
@@ -261,6 +316,76 @@ public static class Bootstrap
         Console.WriteLine($"[C#] watching '{_gamePath}' for hot reload");
     }
 
+    // ── Serializable fields ([SerializeField] / public) ──────────────────────
+
+    // Type tag crossing to the editor -- MUST match native Scripting::ScriptFieldType.
+    private enum FieldType : byte { Float, Int, Bool, String, Vector2 }
+
+    // Public instance fields + [SerializeField] private ones (minus the Script
+    // base's Entity handle). Used for BOTH the hot-reload snapshot and editor
+    // exposure, so the two stay consistent.
+    private static IEnumerable<FieldInfo> SerializableFields(Type type)
+        => type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+               .Where(f => (f.IsPublic || f.IsDefined(typeof(SerializeFieldAttribute)))
+                           && f.Name != nameof(Script.Entity));
+
+    // Of those, the ones whose type the editor can render and store.
+    private static IEnumerable<FieldInfo> EditableFields(Type type)
+        => SerializableFields(type).Where(f => TagOf(f.FieldType) is not null);
+
+    private static FieldType? TagOf(Type t) => t switch
+    {
+        _ when t == typeof(float)   => FieldType.Float,
+        _ when t == typeof(int)     => FieldType.Int,
+        _ when t == typeof(bool)    => FieldType.Bool,
+        _ when t == typeof(string)  => FieldType.String,
+        _ when t == typeof(Vector2) => FieldType.Vector2,
+        _ => null,
+    };
+
+    private static string Format(FieldType tag, object? value) => tag switch
+    {
+        FieldType.Float   => ((float)(value ?? 0.0f)).ToString(CultureInfo.InvariantCulture),
+        FieldType.Int     => ((int)(value ?? 0)).ToString(CultureInfo.InvariantCulture),
+        FieldType.Bool    => value is true ? "true" : "false",
+        FieldType.String  => value as string ?? "",
+        FieldType.Vector2 => value is Vector2 v
+            ? $"{v.X.ToString(CultureInfo.InvariantCulture)} {v.Y.ToString(CultureInfo.InvariantCulture)}"
+            : "0 0",
+        _ => "",
+    };
+
+    private static object? Parse(FieldType tag, string s) => tag switch
+    {
+        FieldType.Float   => float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var f) ? f : 0.0f,
+        FieldType.Int     => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i) ? i : 0,
+        FieldType.Bool    => s is "true" or "1" or "True",
+        FieldType.String  => s,
+        FieldType.Vector2 => ParseVector2(s),
+        _ => null,
+    };
+
+    private static Vector2 ParseVector2(string s)
+    {
+        var p = s.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+        float At(int i) => p.Length > i && float.TryParse(p[i], NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0.0f;
+        return new Vector2(At(0), At(1));
+    }
+
+    // Apply the editor-authored overrides (read from the native ScriptComponent)
+    // onto a fresh instance, before OnCreate. A field with no override keeps its
+    // code default.
+    private static void ApplyAuthoredFields(Script script, uint entity)
+    {
+        foreach (var field in EditableFields(script.GetType()))
+        {
+            if (Interop.GetScriptField(entity, field.Name) is not { } raw)
+                continue;
+            if (Parse(TagOf(field.FieldType)!.Value, raw) is { } value)
+                field.SetValue(script, value);
+        }
+    }
+
     // ── Instantiation ───────────────────────────────────────────────────────
 
     private static Script? Instantiate(string? className, uint entity)
@@ -289,6 +414,7 @@ public static class Bootstrap
 
         var script = (Script)Activator.CreateInstance(type)!;
         script.Entity = new Entity(entity);
+        ApplyAuthoredFields(script, entity);
         return script;
     }
 

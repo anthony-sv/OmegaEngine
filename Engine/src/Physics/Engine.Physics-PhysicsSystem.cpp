@@ -121,10 +121,12 @@ namespace Engine::Physics
             // else: no collider -> no body (a physics body needs a shape).
         }
 
-        // 1b. Build a single STATIC body for every tilemap with solid tiles:
-        //     one box fixture per solid cell (multi-cell tiles cover their
-        //     whole footprint). Built once -- a tilemap's collision is fixed
-        //     while playing, so we skip it once the body exists.
+        // 1b. Build a single STATIC body for every tilemap with solid tiles.
+        //     The solid cells are GREEDY-MESHED into as few rectangles as
+        //     possible (a flat run of ground becomes ONE box) -- merging away
+        //     the internal edges between per-cell boxes that otherwise snag a
+        //     moving body (Box2D "ghost vertices": catching on seams, jittering,
+        //     wedging). Built once -- collision is fixed while playing.
         for (auto&& [e, tf, map] : m_registry.view<ECS::Transform, ECS::TilemapComponent>().each())
         {
             if (map.solidTiles.empty())
@@ -136,29 +138,64 @@ namespace Engine::Physics
 
             float const ts = map.tileWorldSize;
             float const h  = ts * 0.5f;
+            int   const W  = map.dimensions.x;
+            int   const H  = map.dimensions.y;
 
-            std::vector<PhysicsWorld::BoxShape> boxes;
-            for (int y = 0; y < map.dimensions.y; ++y)
-                for (int x = 0; x < map.dimensions.x; ++x)
+            // Mark every solid CELL (a multi-cell tile fills its footprint).
+            std::vector<char> solid(static_cast<std::size_t>(W) * H, 0);
+            for (int y = 0; y < H; ++y)
+                for (int x = 0; x < W; ++x)
                 {
                     int const tid = map.at(x, y);
                     if (tid < 0 || !map.isSolid(tid))
                         continue;
-
-                    // A box covering the tile's footprint, centred over the
-                    // cells it occupies (relative to the grid origin).
                     glm::ivec2 const fp = map.footprintOf(tid);
+                    for (int dy = 0; dy < fp.y; ++dy)
+                        for (int dx = 0; dx < fp.x; ++dx)
+                            if (x + dx < W && y + dy < H)
+                                solid[(y + dy) * W + (x + dx)] = 1;
+                }
+
+            // Greedy mesh: grow each unclaimed solid cell as far right, then as
+            // far down (keeping the full width solid), as it goes; emit one box.
+            std::vector<char> used(static_cast<std::size_t>(W) * H, 0);
+            auto const free = [&](int x, int y) { return solid[y * W + x] && !used[y * W + x]; };
+
+            std::vector<PhysicsWorld::BoxShape> boxes;
+            for (int y = 0; y < H; ++y)
+                for (int x = 0; x < W; ++x)
+                {
+                    if (!free(x, y))
+                        continue;
+
+                    int w = 1;
+                    while (x + w < W && free(x + w, y))
+                        ++w;
+
+                    int hgt = 1;
+                    for (bool grow = true; grow && y + hgt < H; )
+                    {
+                        for (int k = 0; k < w; ++k)
+                            if (!free(x + k, y + hgt)) { grow = false; break; }
+                        if (grow)
+                            ++hgt;
+                    }
+
+                    for (int dy = 0; dy < hgt; ++dy)
+                        for (int dx = 0; dx < w; ++dx)
+                            used[(y + dy) * W + (x + dx)] = 1;
+
                     boxes.push_back({
-                        glm::vec2 { static_cast<float>(fp.x) * h, static_cast<float>(fp.y) * h },
-                        glm::vec2 { (static_cast<float>(x) + static_cast<float>(fp.x) * 0.5f) * ts,
-                                    (static_cast<float>(y) + static_cast<float>(fp.y) * 0.5f) * ts }
+                        glm::vec2 { static_cast<float>(w) * h, static_cast<float>(hgt) * h },
+                        glm::vec2 { (static_cast<float>(x) + static_cast<float>(w)   * 0.5f) * ts,
+                                    (static_cast<float>(y) + static_cast<float>(hgt) * 0.5f) * ts }
                     });
                 }
 
             if (!boxes.empty())
             {
                 m_world.createStaticBoxesBody(id, tf.position, PhysicsWorld::ShapeDef {}, boxes);
-                std::println("[Ω::Physics] tilemap collider built: {} solid cell(s)", boxes.size());
+                std::println("[Ω::Physics] tilemap collider built: {} merged box(es)", boxes.size());
             }
         }
 

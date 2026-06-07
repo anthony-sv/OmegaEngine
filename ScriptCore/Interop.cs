@@ -47,6 +47,15 @@ internal unsafe struct NativeApi
     public delegate* unmanaged[Cdecl]<uint, void>           Destroy;
     public delegate* unmanaged[Cdecl]<nint, uint>           Find;
     public delegate* unmanaged[Cdecl]<uint, int>            IsValid;
+
+    // script fields: authored override for (entity, fieldName) -> value string, or 0
+    public delegate* unmanaged[Cdecl]<uint, nint, nint>     GetScriptField;
+
+    // camera (the view)
+    public delegate* unmanaged[Cdecl]<Vector2*, void>       GetCameraPosition;
+    public delegate* unmanaged[Cdecl]<Vector2*, void>       SetCameraPosition;
+    public delegate* unmanaged[Cdecl]<float>                GetCameraZoom;
+    public delegate* unmanaged[Cdecl]<float, void>          SetCameraZoom;
 }
 
 // Thin marshalling layer between the C# API surface and the native table.
@@ -108,4 +117,21 @@ internal static unsafe class Interop
         try { return Api.Find(utf8); }
         finally { Marshal.FreeCoTaskMem(utf8); }
     }
+
+    public static string? GetScriptField(uint entity, string name)
+    {
+        nint utf8 = Marshal.StringToCoTaskMemUTF8(name);
+        try
+        {
+            nint result = Api.GetScriptField(entity, utf8);
+            return result == 0 ? null : Marshal.PtrToStringUTF8(result);
+        }
+        finally { Marshal.FreeCoTaskMem(utf8); }
+    }
+
+    // -- camera --
+    public static Vector2 GetCameraPosition() { Vector2 v; Api.GetCameraPosition(&v); return v; }
+    public static void    SetCameraPosition(Vector2 v) => Api.SetCameraPosition(&v);
+    public static float   GetCameraZoom() => Api.GetCameraZoom();
+    public static void    SetCameraZoom(float z) => Api.SetCameraZoom(z);
 }
