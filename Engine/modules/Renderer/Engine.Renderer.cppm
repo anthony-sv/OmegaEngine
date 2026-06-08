@@ -10,3 +10,4 @@ export import :Camera2D;
 export import :SubTexture2D;
 export import :BatchRenderer2D;
 export import :Screenshot;
+export import :Font;

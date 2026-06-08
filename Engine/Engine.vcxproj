@@ -182,6 +182,8 @@
     <ClCompile Include="src\Renderer\Engine.Renderer-Camera2D.cpp" />
     <ClCompile Include="modules\Renderer\Engine.Renderer-SubTexture2D.cppm" />
     <ClCompile Include="src\Renderer\Engine.Renderer-SubTexture2D.cpp" />
+    <ClCompile Include="modules\Renderer\Engine.Renderer-Font.cppm" />
+    <ClCompile Include="src\Renderer\Engine.Renderer-Font.cpp" />
     <ClCompile Include="modules\Renderer\Engine.Renderer-BatchRenderer2D.cppm" />
     <ClCompile Include="src\Renderer\Engine.Renderer-BatchRenderer2D.cpp" />
     <ClCompile Include="modules\ECS\Engine.ECS.cppm" />
@@ -193,6 +195,7 @@
     <ClCompile Include="modules\ECS\Engine.ECS-TilemapComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-MarkerComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-ScriptComponents.cppm" />
+    <ClCompile Include="modules\ECS\Engine.ECS-TextComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-TagComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-Registry.cppm" />
     <ClCompile Include="modules\Scene\Engine.Scene.cppm" />

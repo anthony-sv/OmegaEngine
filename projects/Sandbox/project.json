@@ -1,6 +1,7 @@
 {
     "name": "Sandbox",
     "scenes": [
+        "Menu",
         "Grid",
         "Ring",
         "Physics",
@@ -9,7 +10,7 @@
         "Level1",
         "ScriptTest"
     ],
-    "startupScene": "Level1",
+    "startupScene": "Menu",
     "window": {
         "decorated": true,
         "height": 720,

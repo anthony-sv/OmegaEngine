@@ -9,6 +9,7 @@ export import :AnimationComponents;
 export import :TilemapComponents;
 export import :MarkerComponents;
 export import :ScriptComponents;
+export import :TextComponents;
 export import :TagComponents;
 
 // Entity handle + Registry wrapper (custom sparse-set ECS).

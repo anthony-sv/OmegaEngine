@@ -602,6 +602,8 @@ void EditorLayer::onUpdate(float dt)
 
     // A follow-cam script (if any) steers this camera in Play mode; bind it
     // before ticking. (In Edit mode systems don't tick, so it stays put.)
+    // NOTE: the scene manager is intentionally NOT bound here -- a script's
+    // Scene.Load would hijack the editor's active scene and break Play/Stop.
     if (m_camera)
         Engine::Scripting::ScriptHost::instance().bindCamera(&*m_camera);
 
@@ -704,6 +706,9 @@ void EditorLayer::onRender(float alpha)
             Engine::Systems::RenderSystem::renderTilemapGrid(world->registry(), *m_camera);
 
         Engine::Systems::RenderSystem::render(world->registry(), *m_camera, alpha);
+
+        // Text (HUD / menus) -- foreground, on top of sprites.
+        Engine::Systems::RenderSystem::renderText(world->registry(), *m_camera);
 
         // Collider wireframe overlay (authoring aid). Drawn after the
         // sprites, into the same FBO, so it sits on top.

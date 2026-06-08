@@ -102,6 +102,50 @@ namespace Engine::Systems
             Renderer::Renderer2D::endBatch();
         }
 
+        // Draw every TextComponent at its Transform, through `camera`, using a
+        // baked font (cached per .ttf path). Text is the FOREGROUND layer, so
+        // call this AFTER render(). Wraps its own batch pass. The Transform
+        // position is the text's anchor; `align` chooses left/centre/right and
+        // it's vertically centred on the anchor.
+        static void renderText(ECS::Registry& registry, Renderer::Camera2D const& camera)
+        {
+            Renderer::Renderer2D::beginBatch(camera);
+
+            for (auto&& [e, tf, text] : registry.view<ECS::Transform, ECS::TextComponent>().each())
+            {
+                if (text.text.empty() || registry.hasComponent<ECS::Disabled>(e))
+                    continue;
+
+                Renderer::Font const* font = fontFor(text.fontPath);
+                if (font == nullptr)
+                    continue;
+
+                float const size  = text.size;
+                float const width = font->measure(text.text);   // EM
+
+                float originX = tf.position.x;
+                if (text.align == ECS::TextComponent::Align::Center) originX -= width * size * 0.5f;
+                else if (text.align == ECS::TextComponent::Align::Right) originX -= width * size;
+
+                float const originY = tf.position.y - 0.35f * size;   // ~centre the caps on the anchor
+
+                float cursor = 0.0f;   // pen X in font pixels
+                for (char const c : text.text)
+                {
+                    Renderer::Font::Glyph g;
+                    if (!font->layout(c, cursor, g))
+                        continue;       // blank / unsupported -- still advanced
+
+                    glm::vec2 const bottomLeft { originX + g.min.x * size, originY + g.min.y * size };
+                    glm::vec2 const dims = (g.max - g.min) * size;
+                    Renderer::SubTexture2D const sub { font->atlas(), g.uvMin, g.uvMax };
+                    Renderer::Renderer2D::drawQuad(bottomLeft, dims, sub, text.color);
+                }
+            }
+
+            Renderer::Renderer2D::endBatch();
+        }
+
         // Draw every TilemapComponent's non-empty cells, as seen through
         // `camera`. Tilemaps are the BACKGROUND layer, so call this BEFORE
         // render() -- sprites then draw on top. Wraps its own batch pass.
@@ -251,6 +295,30 @@ namespace Engine::Systems
 
 
     private:
+
+        // Resolve a .ttf path to a baked Font, caching by path (and caching
+        // FAILURES as nullopt so a bad path isn't re-baked / re-logged every
+        // frame). Empty path = no font.
+        static Renderer::Font const* fontFor(std::string const& path)
+        {
+            if (path.empty())
+                return nullptr;
+
+            static std::unordered_map<std::string, std::optional<Renderer::Font>> cache;
+            auto it = cache.find(path);
+            if (it == cache.end())
+            {
+                auto baked = Renderer::Font::create(path);
+                if (!baked)
+                    std::println(std::cerr, "[Ω::RenderSystem] font load failed '{}': {}",
+                                 path, baked.error().message);
+                it = cache.emplace(
+                    path,
+                    baked ? std::optional<Renderer::Font> { std::move(*baked) } : std::nullopt
+                ).first;
+            }
+            return it->second ? &*it->second : nullptr;
+        }
 
         // Submit a single entity's quad to the open batch. Picks the
         // right Renderer2D overload based on whether the sprite is

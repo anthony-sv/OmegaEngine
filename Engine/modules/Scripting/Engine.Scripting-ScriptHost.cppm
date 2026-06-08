@@ -3,6 +3,7 @@ export module Engine.Scripting:ScriptHost;
 import Engine.ECS;       // ECS::Registry (the script API operates on it)
 import Engine.Physics;   // Physics::PhysicsWorld (script-driven body dynamics)
 import Engine.Renderer;  // Renderer::Camera2D (script-driven camera)
+import Engine.Scene;     // Scene::SceneManager (script-driven scene switching)
 import std;
 
 /*═══════════════════════════════════════════════════════════════════════════════
@@ -102,6 +103,10 @@ namespace Engine::Scripting
         // The view camera scripts can read/move (e.g. a follow camera). May be
         // null. Set before updates.
         void bindCamera(Renderer::Camera2D* camera);
+
+        // The scene manager scripts switch between (Scene.Load). May be null.
+        // Set before updates. The switch is applied at the frame boundary.
+        void bindSceneManager(Scene::SceneManager* scenes);
 
         // Publish this frame's dt (Time.Delta) and accumulate elapsed time.
         void setTime(float dt);

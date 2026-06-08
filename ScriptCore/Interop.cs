@@ -56,6 +56,10 @@ internal unsafe struct NativeApi
     public delegate* unmanaged[Cdecl]<Vector2*, void>       SetCameraPosition;
     public delegate* unmanaged[Cdecl]<float>                GetCameraZoom;
     public delegate* unmanaged[Cdecl]<float, void>          SetCameraZoom;
+
+    // scene / app control
+    public delegate* unmanaged[Cdecl]<nint, void>           SceneLoad;
+    public delegate* unmanaged[Cdecl]<void>                 AppQuit;
 }
 
 // Thin marshalling layer between the C# API surface and the native table.
@@ -134,4 +138,14 @@ internal static unsafe class Interop
     public static void    SetCameraPosition(Vector2 v) => Api.SetCameraPosition(&v);
     public static float   GetCameraZoom() => Api.GetCameraZoom();
     public static void    SetCameraZoom(float z) => Api.SetCameraZoom(z);
+
+    // -- scene / app --
+    public static void Quit() => Api.AppQuit();
+
+    public static void LoadScene(string name)
+    {
+        nint utf8 = Marshal.StringToCoTaskMemUTF8(name);
+        try { Api.SceneLoad(utf8); }
+        finally { Marshal.FreeCoTaskMem(utf8); }
+    }
 }

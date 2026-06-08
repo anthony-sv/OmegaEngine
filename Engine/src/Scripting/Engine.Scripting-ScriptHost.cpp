@@ -9,10 +9,11 @@ module;
 module Engine.Scripting:ScriptHost;
 
 import :ScriptHost;
-import Engine.Core;        // Application (assets), Input
+import Engine.Core;        // Application (assets, window), Input
 import Engine.ECS;
-import Engine.Renderer;    // Texture2D (for sprite SetTexture)
+import Engine.Renderer;    // Texture2D (for sprite SetTexture), Camera2D
 import Engine.Physics;     // PhysicsWorld (body velocity / impulse / force)
+import Engine.Scene;       // SceneManager (script-driven scene switching)
 import std;
 
 namespace Engine::Scripting
@@ -30,6 +31,7 @@ namespace Engine::Scripting
         ECS::Registry*          g_registry = nullptr;   // the world being ticked
         Physics::PhysicsWorld*  g_physics  = nullptr;   // its bodies (may be null)
         Renderer::Camera2D*     g_camera   = nullptr;   // the view camera (may be null)
+        Scene::SceneManager*    g_scenes   = nullptr;   // for script-driven scene switches
         float                   g_delta    = 0.0f;       // this frame's dt
         float                   g_elapsed  = 0.0f;       // seconds since the host booted
 
@@ -209,6 +211,19 @@ namespace Engine::Scripting
         float __cdecl Camera_GetZoom()        { return g_camera ? g_camera->zoom() : 1.0f; }
         void  __cdecl Camera_SetZoom(float z) { if (g_camera) g_camera->setZoom(z); }
 
+        // -- Scene / app control ----------------------------------------
+
+        void __cdecl Scene_Load(char const* name)
+        {
+            if (g_scenes && name)
+                g_scenes->switchTo(std::string { name });   // applied at the frame boundary
+        }
+
+        void __cdecl App_Quit()
+        {
+            Core::Application::get().window().close();
+        }
+
         // -- Entity lifecycle / lookup ----------------------------------
 
         std::uint32_t __cdecl Entity_Create(char const* name)
@@ -307,6 +322,9 @@ namespace Engine::Scripting
             void  (__cdecl *SetCameraPosition)(Vec2*);
             float (__cdecl *GetCameraZoom)();
             void  (__cdecl *SetCameraZoom)(float);
+
+            void  (__cdecl *SceneLoad)(char const*);
+            void  (__cdecl *AppQuit)();
         };
 
         // ── Project-script build helpers ──
@@ -454,6 +472,8 @@ namespace Engine::Scripting
     void ScriptHost::bindPhysics(Physics::PhysicsWorld* physics) { g_physics = physics; }
 
     void ScriptHost::bindCamera(Renderer::Camera2D* camera) { g_camera = camera; }
+
+    void ScriptHost::bindSceneManager(Scene::SceneManager* scenes) { g_scenes = scenes; }
 
     void ScriptHost::setTime(float dt)
     {
@@ -694,6 +714,8 @@ namespace Engine::Scripting
             .SetCameraPosition = &Camera_SetPosition,
             .GetCameraZoom     = &Camera_GetZoom,
             .SetCameraZoom     = &Camera_SetZoom,
+            .SceneLoad         = &Scene_Load,
+            .AppQuit           = &App_Quit,
         };
         m_impl->Init(&m_impl->api);
         m_impl->ready = true;

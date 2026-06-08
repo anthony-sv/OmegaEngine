@@ -141,12 +141,14 @@ void SandboxLayer::onUpdate(float dt)
         }
     }
 
-    // A follow-cam script (if any) steers this camera; bind it before ticking.
+    // Scripts can steer this camera (follow-cam) and switch scenes
+    // (Scene.Load); bind both before ticking.
     if (m_camera)
         Engine::Scripting::ScriptHost::instance().bindCamera(&*m_camera);
+    Engine::Scripting::ScriptHost::instance().bindSceneManager(&m_sceneManager);
 
-    // Space switches scenes (bound per scene to "NextScene"). The manager
-    // applies any pending switch at the frame boundary, then ticks systems.
+    // The manager applies any pending (script-requested) switch at the frame
+    // boundary, then ticks the active scene's systems.
     m_sceneManager.onUpdate(dt);
 }
 
@@ -161,6 +163,9 @@ void SandboxLayer::onRender(float alpha)
 
     // alpha (the fixed-step sub-frame fraction) drives render interpolation.
     Engine::Systems::RenderSystem::render(scene->registry(), *m_camera, alpha);
+
+    // Text is the foreground layer (HUD / menus), drawn on top of sprites.
+    Engine::Systems::RenderSystem::renderText(scene->registry(), *m_camera);
 
     // F2 -> screenshot the window (default framebuffer, captured before swap).
     if (Engine::Core::Input::wasKeyPressed(Engine::Core::Key::F2))

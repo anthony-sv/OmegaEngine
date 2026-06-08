@@ -210,6 +210,18 @@ namespace Engine::Scene
                 je["Script"] = std::move(js);
             }
 
+            if (e.has<TextComponent>())
+            {
+                auto const& t = e.get<TextComponent>();
+                je["Text"] = {
+                    { "text",  t.text },
+                    { "font",  t.fontPath },
+                    { "size",  t.size },
+                    { "color", toJson(t.color) },
+                    { "align", static_cast<int>(t.align) },
+                };
+            }
+
             entities.push_back(std::move(je));
         });
 
@@ -391,6 +403,19 @@ namespace Engine::Scene
                 if (js.contains("fields"))
                     sc.fields = js["fields"].get<std::map<std::string, std::string>>();
                 e.add<ScriptComponent>(std::move(sc));
+            }
+
+            if (je.contains("Text"))
+            {
+                auto const& jt = je["Text"];
+                TextComponent t;
+                t.text     = jt.value("text", std::string {});
+                t.fontPath = jt.value("font", std::string {});
+                t.size     = jt.value("size", 1.0f);
+                if (jt.contains("color"))
+                    t.color = vec4From(jt["color"]);
+                t.align = static_cast<TextComponent::Align>(jt.value("align", 1));   // 1 = Center
+                e.add<TextComponent>(std::move(t));
             }
 
             if (je.contains("RigidBody2D"))
