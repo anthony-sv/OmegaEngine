@@ -45,4 +45,21 @@ namespace Engine::ECS
         std::map<std::string, std::string> fields    {};   // authored field overrides (value as string)
 	}; // struct ScriptComponent
 
+    // -----------------------------------------------------------------
+    // GraphComponent -- attaches a visual-script GRAPH (by name) to an
+    // entity. The graph itself is an EDITOR asset (graphs/<name>.ngraph);
+    // saving it code-generates a C# class "Game.<name>", which is what the
+    // runtime actually executes -- the engine never parses graph files.
+    //
+    // The graph name must be a valid C# identifier (it becomes the class
+    // name). An entity should carry a Script OR a Graph, not both: script
+    // instances are keyed by entity id, so two class names on one entity
+    // would recreate the instance every frame.
+    // -----------------------------------------------------------------
+
+    export struct GraphComponent
+    {
+        std::string graphName {};   // graphs/<graphName>.ngraph -> class "Game.<graphName>"
+	}; // struct GraphComponent
+
 } // namespace ECS

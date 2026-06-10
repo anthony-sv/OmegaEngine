@@ -2,15 +2,19 @@
 
 import Engine.Core;
 
-export class ImGuiLayer final: public Engine::Core::ILayer {
-public:
-    ImGuiLayer();
+namespace Editor
+{
 
-    void onAttach() override;
+    export class ImGuiLayer final: public Engine::Core::ILayer {
+    public:
+        ImGuiLayer();
 
-    void onDetach() override;
+        void onAttach() override;
 
-    void onRender(float) override;
+        void onDetach() override;
 
-    void onImGuiRender() override;
-}; // class ImGuiLayer
+        void onRender(float) override;
+
+        void onImGuiRender() override;
+    }; // class ImGuiLayer
+} // namespace Editor

@@ -1,42 +1,165 @@
 {
   "entities": [
     {
-      "Name": "Floor",
-      "Transform": { "position": [-3.0, -2.0], "rotation": 0.0, "scale": [1.0, 1.0] },
-      "Tilemap": {
-        "source": "atlas",
-        "atlasPath": "assets/textures/tileset.png",
-        "tilePixelSize": [64, 64],
-        "tileDefs": [],
-        "tileWorldSize": 0.5,
-        "dimensions": [12, 2],
-        "tiles": [
-          8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-          8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
+      "BoxCollider2D": {
+        "density": 1.0,
+        "friction": 0.4000000059604645,
+        "isTrigger": false,
+        "offset": [
+          0.0,
+          0.0
         ],
-        "solidTiles": [8]
+        "restitution": 0.10000000149011612,
+        "size": [
+          0.5,
+          0.5
+        ]
+      },
+      "Name": "Crate",
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 1
+      },
+      "SpriteRenderer": {
+        "color": [
+          0.5,
+          0.699999988079071,
+          0.949999988079071,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          -1.2999999523162842,
+          2.0999999046325684
+        ],
+        "rotation": 15.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
       }
     },
     {
-      "Name": "Ball",
-      "Transform": { "position": [0.0, 1.6], "rotation": 0.0, "scale": [0.6, 0.6] },
-      "SpriteRenderer": { "color": [0.9, 0.4, 0.3, 1.0], "texturePath": "", "uvMin": [0,0], "uvMax": [1,1], "tilingFactor": 1.0 },
-      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
-      "CircleCollider2D": { "radius": 0.3, "offset": [0,0], "density": 1.0, "friction": 0.3, "restitution": 0.4, "isTrigger": false }
-    },
-    {
-      "Name": "Crate",
-      "Transform": { "position": [-1.3, 2.1], "rotation": 15.0, "scale": [0.5, 0.5] },
-      "SpriteRenderer": { "color": [0.5, 0.7, 0.95, 1.0], "texturePath": "", "uvMin": [0,0], "uvMax": [1,1], "tilingFactor": 1.0 },
-      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
-      "BoxCollider2D": { "size": [0.5, 0.5], "offset": [0,0], "density": 1.0, "friction": 0.4, "restitution": 0.1, "isTrigger": false }
-    },
-    {
+      "CircleCollider2D": {
+        "density": 1.0,
+        "friction": 0.30000001192092896,
+        "isTrigger": false,
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "radius": 0.25,
+        "restitution": 0.6000000238418579
+      },
       "Name": "Ball2",
-      "Transform": { "position": [1.3, 1.0], "rotation": 0.0, "scale": [0.5, 0.5] },
-      "SpriteRenderer": { "color": [0.5, 0.9, 0.5, 1.0], "texturePath": "", "uvMin": [0,0], "uvMax": [1,1], "tilingFactor": 1.0 },
-      "RigidBody2D": { "type": 1, "mass": 1.0, "gravityScale": 1.0, "fixedRotation": false },
-      "CircleCollider2D": { "radius": 0.25, "offset": [0,0], "density": 1.0, "friction": 0.3, "restitution": 0.6, "isTrigger": false }
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 1
+      },
+      "SpriteRenderer": {
+        "color": [
+          0.5,
+          0.8999999761581421,
+          0.5,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          1.2999999523162842,
+          1.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.5,
+          0.5
+        ]
+      }
+    },
+    {
+      "Name": "Floor",
+      "Tilemap": {
+        "atlasPath": "assets/textures/tileset.png",
+        "dimensions": [
+          12,
+          2
+        ],
+        "opacity": 1.0,
+        "solidTiles": [
+          8
+        ],
+        "source": "atlas",
+        "tileDefs": [],
+        "tilePixelSize": [
+          64,
+          64
+        ],
+        "tileWorldSize": 0.5,
+        "tiles": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "visible": true,
+        "zIndex": 0
+      },
+      "Transform": {
+        "position": [
+          -3.0,
+          -2.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
     }
   ],
   "name": "TilePhysics"

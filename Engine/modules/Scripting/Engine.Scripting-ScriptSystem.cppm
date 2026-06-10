@@ -143,6 +143,14 @@ namespace Engine::Scripting
             // keys instances by entity id, so we just tick every one.
             for (auto&& [entity, script] : m_registry.view<ECS::ScriptComponent>().each())
                 host.tick(static_cast<std::uint32_t>(entity), script.className, dt);
+
+            // A graph runs as its GENERATED class -- the editor codegens
+            // graphs/<name>.ngraph into "Game.<name>" (same build + hot-reload
+            // pipeline as hand-written scripts), so the runtime just resolves
+            // the name by convention.
+            for (auto&& [entity, graph] : m_registry.view<ECS::GraphComponent>().each())
+                if (!graph.graphName.empty())
+                    host.tick(static_cast<std::uint32_t>(entity), "Game." + graph.graphName, dt);
         }
 
     private:

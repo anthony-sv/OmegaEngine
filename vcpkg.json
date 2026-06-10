@@ -19,6 +19,7 @@
       ]
     },
     "imguizmo",
+    "imgui-node-editor",
     "glm",
     "stb",
     "entt",

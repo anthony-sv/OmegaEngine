@@ -210,6 +210,12 @@ namespace Engine::Scene
                 je["Script"] = std::move(js);
             }
 
+            if (e.has<GraphComponent>())
+            {
+                auto const& gc = e.get<GraphComponent>();
+                je["Graph"] = { { "graphName", gc.graphName } };
+            }
+
             if (e.has<TextComponent>())
             {
                 auto const& t = e.get<TextComponent>();
@@ -403,6 +409,13 @@ namespace Engine::Scene
                 if (js.contains("fields"))
                     sc.fields = js["fields"].get<std::map<std::string, std::string>>();
                 e.add<ScriptComponent>(std::move(sc));
+            }
+
+            if (je.contains("Graph"))
+            {
+                GraphComponent gc;
+                gc.graphName = je["Graph"].value("graphName", std::string {});
+                e.add<GraphComponent>(std::move(gc));
             }
 
             if (je.contains("Text"))

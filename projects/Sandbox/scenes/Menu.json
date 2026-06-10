@@ -1,39 +1,183 @@
 {
   "entities": [
     {
-      "Name": "Background",
-      "Transform": { "position": [0.0, 0.0], "rotation": 0.0, "scale": [24.0, 14.0] },
-      "SpriteRenderer": { "color": [0.20, 0.26, 0.52, 1.0], "texturePath": "", "uvMin": [0, 0], "uvMax": [1, 1], "tilingFactor": 1.0 }
-    },
-    {
-      "Name": "Title",
-      "Transform": { "position": [0.0, 2.2], "rotation": 0.0, "scale": [1.0, 1.0] },
-      "Text": { "text": "OMEGA ENGINE", "font": "assets/fonts/JetBrainsMono.ttf", "size": 0.9, "color": [1.0, 1.0, 1.0, 1.0], "align": 1 }
-    },
-    {
-      "Name": "Opt_Level1",
-      "Transform": { "position": [-1.5, 0.6], "rotation": 0.0, "scale": [1.0, 1.0] },
-      "Text": { "text": "Level 1", "font": "assets/fonts/JetBrainsMono.ttf", "size": 0.7, "color": [0.92, 0.92, 0.92, 1.0], "align": 0 }
-    },
-    {
-      "Name": "Opt_Exit",
-      "Transform": { "position": [-1.5, -0.5], "rotation": 0.0, "scale": [1.0, 1.0] },
-      "Text": { "text": "Exit", "font": "assets/fonts/JetBrainsMono.ttf", "size": 0.7, "color": [0.92, 0.92, 0.92, 1.0], "align": 0 }
-    },
-    {
-      "Name": "Selector",
-      "Transform": { "position": [-2.2, 0.6], "rotation": 0.0, "scale": [1.0, 1.0] },
-      "Text": { "text": ">", "font": "assets/fonts/JetBrainsMono.ttf", "size": 0.7, "color": [1.0, 0.85, 0.2, 1.0], "align": 0 }
+      "Name": "Menu",
+      "Script": {
+        "className": "Game.MenuController"
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          0.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
     },
     {
       "Name": "Hint",
-      "Transform": { "position": [0.0, -2.4], "rotation": 0.0, "scale": [1.0, 1.0] },
-      "Text": { "text": "W/S  move      D / Enter  select", "font": "assets/fonts/JetBrainsMono.ttf", "size": 0.38, "color": [0.7, 0.75, 0.85, 1.0], "align": 1 }
+      "Text": {
+        "align": 1,
+        "color": [
+          0.699999988079071,
+          0.75,
+          0.8500000238418579,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.3799999952316284,
+        "text": "W/S  move      D / Enter  select"
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.4000000953674316
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
     },
     {
-      "Name": "Menu",
-      "Transform": { "position": [0.0, 0.0], "rotation": 0.0, "scale": [1.0, 1.0] },
-      "Script": { "className": "Game.MenuController" }
+      "Name": "Selector",
+      "Text": {
+        "align": 0,
+        "color": [
+          1.0,
+          0.8500000238418579,
+          0.20000000298023224,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.699999988079071,
+        "text": ">"
+      },
+      "Transform": {
+        "position": [
+          -2.200000047683716,
+          0.6000000238418579
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "Name": "Opt_Exit",
+      "Text": {
+        "align": 0,
+        "color": [
+          0.9200000166893005,
+          0.9200000166893005,
+          0.9200000166893005,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.699999988079071,
+        "text": "Exit"
+      },
+      "Transform": {
+        "position": [
+          -1.5,
+          -0.5
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "Name": "Opt_Level1",
+      "Text": {
+        "align": 0,
+        "color": [
+          0.9200000166893005,
+          0.9200000166893005,
+          0.9200000166893005,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.699999988079071,
+        "text": "Level 1"
+      },
+      "Transform": {
+        "position": [
+          -1.5,
+          0.6000000238418579
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "Name": "Title",
+      "Text": {
+        "align": 1,
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.8999999761581421,
+        "text": "OMEGA ENGINE"
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          2.200000047683716
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "Name": "Background",
+      "SpriteRenderer": {
+        "color": [
+          0.20000000298023224,
+          0.25999999046325684,
+          0.5199999809265137,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1.0,
+          1.0
+        ],
+        "uvMin": [
+          0.0,
+          0.0
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          0.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          24.0,
+          14.0
+        ]
+      }
     }
   ],
   "name": "Menu"

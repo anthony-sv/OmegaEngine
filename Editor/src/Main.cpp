@@ -36,7 +36,7 @@ auto main(int argc, char* argv[]) -> int {
     // found.
     std::filesystem::current_path(project->root());
 
-    EditorApp app { std::move(*project) };
+    Editor::EditorApp app { std::move(*project) };
 
     auto result = app.run();
     if(!result) {

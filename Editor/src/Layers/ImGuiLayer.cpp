@@ -19,196 +19,200 @@ module ImGuiLayer;
 
 import Engine.Core;
 
-// Ω::Win32 borderless window proc ────────────────────────────────────────
-#ifdef _WIN32
-static WNDPROC s_prevWndProc = nullptr;
-static HWND    s_cachedHwnd  = nullptr;
+namespace Editor
+{
 
-static LRESULT CALLBACK EditorWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch(msg) {
-        case WM_NCCALCSIZE:
-        {
-            if(wParam == TRUE && IsZoomed(hwnd)) {
-                auto* p = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+    // Ω::Win32 borderless window proc ────────────────────────────────────────
+#ifdef _WIN32
+    static WNDPROC s_prevWndProc = nullptr;
+    static HWND    s_cachedHwnd  = nullptr;
+
+    static LRESULT CALLBACK EditorWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+        switch(msg) {
+            case WM_NCCALCSIZE:
+            {
+                if(wParam == TRUE && IsZoomed(hwnd)) {
+                    auto* p = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+                    HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+                    MONITORINFO mi {};
+                    mi.cbSize = sizeof(mi);
+                    if(GetMonitorInfo(mon, &mi))
+                        p->rgrc[0] = mi.rcWork;
+                }
+                return 0;
+            }
+
+            case WM_NCHITTEST:
+            {
+                POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                ScreenToClient(hwnd, &pt);
+
+                RECT rc;
+                GetClientRect(hwnd, &rc);
+
+                if(!IsZoomed(hwnd)) {
+                    int bx = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+                    int by = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+
+                    bool l = pt.x < bx;
+                    bool r = pt.x >= rc.right - bx;
+                    bool t = pt.y < by;
+                    bool b = pt.y >= rc.bottom - by;
+
+                    if(t && l) return HTTOPLEFT;
+                    if(t && r) return HTTOPRIGHT;
+                    if(b && l) return HTBOTTOMLEFT;
+                    if(b && r) return HTBOTTOMRIGHT;
+                    if(l)      return HTLEFT;
+                    if(r)      return HTRIGHT;
+                    if(t)      return HTTOP;
+                    if(b)      return HTBOTTOM;
+                }
+
+                if(pt.y < g_titlebarHeight && !g_imguiWantsInput)
+                    return HTCAPTION;
+
+                return HTCLIENT;
+            }
+
+            case WM_GETMINMAXINFO:
+            {
+                auto* mmi = reinterpret_cast<MINMAXINFO*>(lParam);
+                mmi->ptMinTrackSize.x = 400;
+                mmi->ptMinTrackSize.y = 300;
                 HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
                 MONITORINFO mi {};
                 mi.cbSize = sizeof(mi);
-                if(GetMonitorInfo(mon, &mi))
-                    p->rgrc[0] = mi.rcWork;
-            }
-            return 0;
-        }
-
-        case WM_NCHITTEST:
-        {
-            POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-            ScreenToClient(hwnd, &pt);
-
-            RECT rc;
-            GetClientRect(hwnd, &rc);
-
-            if(!IsZoomed(hwnd)) {
-                int bx = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-                int by = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-
-                bool l = pt.x < bx;
-                bool r = pt.x >= rc.right - bx;
-                bool t = pt.y < by;
-                bool b = pt.y >= rc.bottom - by;
-
-                if(t && l) return HTTOPLEFT;
-                if(t && r) return HTTOPRIGHT;
-                if(b && l) return HTBOTTOMLEFT;
-                if(b && r) return HTBOTTOMRIGHT;
-                if(l)      return HTLEFT;
-                if(r)      return HTRIGHT;
-                if(t)      return HTTOP;
-                if(b)      return HTBOTTOM;
+                if(GetMonitorInfo(mon, &mi)) {
+                    mmi->ptMaxPosition.x = mi.rcWork.left - mi.rcMonitor.left;
+                    mmi->ptMaxPosition.y = mi.rcWork.top - mi.rcMonitor.top;
+                    mmi->ptMaxSize.x = mi.rcWork.right - mi.rcWork.left;
+                    mmi->ptMaxSize.y = mi.rcWork.bottom - mi.rcWork.top;
+                }
+                return 0;
             }
 
-            if(pt.y < g_titlebarHeight && !g_imguiWantsInput)
-                return HTCAPTION;
+            case WM_NCACTIVATE:
+                return TRUE;
 
-            return HTCLIENT;
+            case WM_ERASEBKGND:
+                return 1;
         }
 
-        case WM_GETMINMAXINFO:
-        {
-            auto* mmi = reinterpret_cast<MINMAXINFO*>(lParam);
-            mmi->ptMinTrackSize.x = 400;
-            mmi->ptMinTrackSize.y = 300;
-            HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-            MONITORINFO mi {};
-            mi.cbSize = sizeof(mi);
-            if(GetMonitorInfo(mon, &mi)) {
-                mmi->ptMaxPosition.x = mi.rcWork.left - mi.rcMonitor.left;
-                mmi->ptMaxPosition.y = mi.rcWork.top - mi.rcMonitor.top;
-                mmi->ptMaxSize.x = mi.rcWork.right - mi.rcWork.left;
-                mmi->ptMaxSize.y = mi.rcWork.bottom - mi.rcWork.top;
-            }
-            return 0;
-        }
-
-        case WM_NCACTIVATE:
-            return TRUE;
-
-        case WM_ERASEBKGND:
-            return 1;
+        return CallWindowProcW(s_prevWndProc, hwnd, msg, wParam, lParam);
     }
-
-    return CallWindowProcW(s_prevWndProc, hwnd, msg, wParam, lParam);
-}
 #endif
 
-ImGuiLayer::ImGuiLayer(): 
-    ILayer { "Ω::ImGuiLayer" } {}
+    ImGuiLayer::ImGuiLayer(): 
+        ILayer { "Ω::ImGuiLayer" } {}
 
-void ImGuiLayer::onAttach() {
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    
-    auto& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    // Editor layout state lives next to the EXECUTABLE, not in the open
-    // project's directory (which is the cwd). Static so the pointer ImGui
-    // stores stays valid for the program's lifetime.
-    static std::string const iniPath =
-        (Engine::Core::Paths::executableDir() / "omega_editor_layout.ini").string();
-    io.IniFilename = iniPath.c_str();
+    void ImGuiLayer::onAttach() {
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        
+        auto& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        // Editor layout state lives next to the EXECUTABLE, not in the open
+        // project's directory (which is the cwd). Static so the pointer ImGui
+        // stores stays valid for the program's lifetime.
+        static std::string const iniPath =
+            (Engine::Core::Paths::executableDir() / "omega_editor_layout.ini").string();
+        io.IniFilename = iniPath.c_str();
 
-    ImGui::StyleColorsDark();
+        ImGui::StyleColorsDark();
 
-    // Roomier controls: a larger base font + taller frame padding makes
-    // the (borderless) titlebar and its buttons easier to hit.
-    constexpr float fontSize = 17.0f;
-    {
-        auto& style = ImGui::GetStyle();
-        style.FramePadding = ImVec2(6.0f, 6.0f);
-        style.ItemSpacing  = ImVec2(8.0f, 6.0f);
-    }
+        // Roomier controls: a larger base font + taller frame padding makes
+        // the (borderless) titlebar and its buttons easier to hit.
+        constexpr float fontSize = 17.0f;
+        {
+            auto& style = ImGui::GetStyle();
+            style.FramePadding = ImVec2(6.0f, 6.0f);
+            style.ItemSpacing  = ImVec2(8.0f, 6.0f);
+        }
 
-    ImVector<ImWchar> ranges;
-    ImFontGlyphRangesBuilder builder;
-    builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
-    builder.AddRanges(io.Fonts->GetGlyphRangesGreek());
-    builder.BuildRanges(&ranges);
+        ImVector<ImWchar> ranges;
+        ImFontGlyphRangesBuilder builder;
+        builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+        builder.AddRanges(io.Fonts->GetGlyphRangesGreek());
+        builder.BuildRanges(&ranges);
 
-    // Editor chrome fonts are exe-relative resources (NOT project content).
-    auto const baseFont = Engine::Core::Paths::resource("Editor/assets/fonts/JetBrainsMonoNL-Regular.ttf").string();
-    io.Fonts->AddFontFromFileTTF(
-        baseFont.c_str(),
-        fontSize,
-        nullptr,
-        ranges.Data);
+        // Editor chrome fonts are exe-relative resources (NOT project content).
+        auto const baseFont = Engine::Core::Paths::resource("Editor/assets/fonts/JetBrainsMonoNL-Regular.ttf").string();
+        io.Fonts->AddFontFromFileTTF(
+            baseFont.c_str(),
+            fontSize,
+            nullptr,
+            ranges.Data);
 
-    // Merge Font Awesome 6 (Solid) into the SAME font so icons sit inline
-    // with text (ICON_FA_PLAY " Play"). MergeMode appends glyphs to the
-    // previous font; the FA range is the Private Use Area block.
-    static const ImWchar faRange[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-    ImFontConfig faCfg;
-    faCfg.MergeMode        = true;
-    faCfg.PixelSnapH       = true;
-    faCfg.GlyphMinAdvanceX = fontSize;                 // give icons a uniform box
-    faCfg.GlyphOffset      = ImVec2(0.0f, 2.0f);       // nudge onto the text baseline
-    auto const iconFont = Engine::Core::Paths::resource("Editor/assets/fonts/fa-solid-900.ttf").string();
-    io.Fonts->AddFontFromFileTTF(
-        iconFont.c_str(),
-        fontSize - 2.0f,                                // icons read better a touch smaller
-        &faCfg,
-        faRange);
+        // Merge Font Awesome 6 (Solid) into the SAME font so icons sit inline
+        // with text (ICON_FA_PLAY " Play"). MergeMode appends glyphs to the
+        // previous font; the FA range is the Private Use Area block.
+        static const ImWchar faRange[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+        ImFontConfig faCfg;
+        faCfg.MergeMode        = true;
+        faCfg.PixelSnapH       = true;
+        faCfg.GlyphMinAdvanceX = fontSize;                 // give icons a uniform box
+        faCfg.GlyphOffset      = ImVec2(0.0f, 2.0f);       // nudge onto the text baseline
+        auto const iconFont = Engine::Core::Paths::resource("Editor/assets/fonts/fa-solid-900.ttf").string();
+        io.Fonts->AddFontFromFileTTF(
+            iconFont.c_str(),
+            fontSize - 2.0f,                                // icons read better a touch smaller
+            &faCfg,
+            faRange);
 
-    if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        auto& style = ImGui::GetStyle();
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-    
-    auto* nativeWindow = Engine::Core::Application::get().window().nativeHandle();
-    ImGui_ImplGlfw_InitForOpenGL(nativeWindow, true);
-    ImGui_ImplOpenGL3_Init("#version 460");
+        if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            auto& style = ImGui::GetStyle();
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        }
+        
+        auto* nativeWindow = Engine::Core::Application::get().window().nativeHandle();
+        ImGui_ImplGlfw_InitForOpenGL(nativeWindow, true);
+        ImGui_ImplOpenGL3_Init("#version 460");
 
 #ifdef _WIN32
-    s_cachedHwnd = glfwGetWin32Window(nativeWindow);
-    s_prevWndProc = reinterpret_cast<WNDPROC>(
-        SetWindowLongPtrW(s_cachedHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(EditorWndProc))
-        );
-    SetWindowPos(s_cachedHwnd, nullptr, 0, 0, 0, 0,
-                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        s_cachedHwnd = glfwGetWin32Window(nativeWindow);
+        s_prevWndProc = reinterpret_cast<WNDPROC>(
+            SetWindowLongPtrW(s_cachedHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(EditorWndProc))
+            );
+        SetWindowPos(s_cachedHwnd, nullptr, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 #endif
-    
-    std::println("[Ω::ImGuiLayer] attached — docking + viewports");
-}
+        
+        std::println("[Ω::ImGuiLayer] attached — docking + viewports");
+    }
 
-void ImGuiLayer::onDetach() {
+    void ImGuiLayer::onDetach() {
 #ifdef _WIN32
-    if(s_prevWndProc && s_cachedHwnd) {
-        SetWindowLongPtrW(s_cachedHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(s_prevWndProc));
-        s_prevWndProc = nullptr;
-        s_cachedHwnd  = nullptr;
-    }
+        if(s_prevWndProc && s_cachedHwnd) {
+            SetWindowLongPtrW(s_cachedHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(s_prevWndProc));
+            s_prevWndProc = nullptr;
+            s_cachedHwnd  = nullptr;
+        }
 #endif
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-    std::println("[Ω::ImGuiLayer] detached");
-}
-
-void ImGuiLayer::onRender(float) {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-}
-
-void ImGuiLayer::onImGuiRender() {
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    
-    if(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        auto* backup = glfwGetCurrentContext();
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-        glfwMakeContextCurrent(backup);
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        std::println("[Ω::ImGuiLayer] detached");
     }
-}
+
+    void ImGuiLayer::onRender(float) {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+    }
+
+    void ImGuiLayer::onImGuiRender() {
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        
+        if(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            auto* backup = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup);
+        }
+    }
+} // namespace Editor

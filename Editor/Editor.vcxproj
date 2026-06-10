@@ -109,7 +109,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\modules;$(SolutionDir)Engine\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\modules;$(SolutionDir)Engine\include;$(ProjectDir)src</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -136,7 +136,7 @@ copy /Y "$(ProjectDir)..\tools\BuildScripts.cs" "$(OutDir)"</Command>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\modules;$(SolutionDir)Engine\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\modules;$(SolutionDir)Engine\include;$(ProjectDir)src</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -149,6 +149,12 @@ copy /Y "$(ProjectDir)..\tools\BuildScripts.cs" "$(OutDir)"</Command>
     <ClCompile Include="modules\Layers\EditorLayer.cppm" />
     <ClCompile Include="modules\Layers\ImGuiLayer.cppm" />
     <ClCompile Include="src\EditorApp.cpp" />
+    <ClCompile Include="modules\Nodes\NodeGraph.cppm" />
+    <ClCompile Include="modules\Nodes\NodeCodegen.cppm" />
+    <ClCompile Include="modules\Nodes\NodeEditor.cppm" />
+    <ClCompile Include="src\Nodes\NodeGraph.cpp" />
+    <ClCompile Include="src\Nodes\NodeCodegen.cpp" />
+    <ClCompile Include="src\Nodes\NodeEditor.cpp" />
     <ClCompile Include="src\Layers\EditorLayer.cpp" />
     <ClCompile Include="src\Layers\ImGuiLayer.cpp" />
     <ClCompile Include="src\Main.cpp" />
