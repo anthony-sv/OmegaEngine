@@ -2,8 +2,20 @@
   "entities": [
     {
       "Name": "Rules",
-      "Transform": { "position": [0.0, 0.0], "rotation": 0.0, "scale": [1.0, 1.0] },
-      "Script": { "className": "Game.ReturnToMenu" }
+      "Script": {
+        "className": "Game.ReturnToMenu"
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          0.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
     },
     {
       "Marker": {
@@ -11,7 +23,9 @@
         "type": 4
       },
       "Name": "CameraBound",
-      "Script": { "className": "Game.CameraFollow" },
+      "Script": {
+        "className": "Game.CameraFollow"
+      },
       "Transform": {
         "position": [
           0.0,
@@ -25,14 +39,34 @@
       }
     },
     {
+      "BoxCollider2D": {
+        "density": 1.0,
+        "friction": 0.3,
+        "isTrigger": true,
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "restitution": 0.0,
+        "size": [
+          1.0,
+          1.5
+        ]
+      },
       "Marker": {
         "tag": "tree",
         "type": 3
       },
       "Name": "Tree",
-      "Script": { "className": "Game.Pickup" },
-      "RigidBody2D": { "fixedRotation": false, "gravityScale": 1.0, "mass": 1.0, "type": 0 },
-      "BoxCollider2D": { "density": 1.0, "friction": 0.3, "isTrigger": true, "offset": [0.0, 0.0], "restitution": 0.0, "size": [1.0, 1.5] },
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 0
+      },
+      "Script": {
+        "className": "Game.Pickup"
+      },
       "SpriteRenderer": {
         "color": [
           1.0,
@@ -133,12 +167,14 @@
         ]
       },
       "Name": "Mario",
-      "Script": { "className": "Game.PlayerController" },
       "RigidBody2D": {
         "fixedRotation": true,
         "gravityScale": 1.0,
         "mass": 1.0,
         "type": 1
+      },
+      "Script": {
+        "className": "Game.PlayerController"
       },
       "SpriteRenderer": {
         "color": [
@@ -470,6 +506,47 @@
         "position": [
           -6.0,
           -2.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "BoxCollider2D": {
+        "density": 1.0,
+        "friction": 0.3,
+        "isTrigger": true,
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "restitution": 0.0,
+        "size": [
+          0.5,
+          2.0
+        ]
+      },
+      "Marker": {
+        "tag": "checkpoint",
+        "type": 1
+      },
+      "Name": "Checkpoint",
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 0
+      },
+      "Script": {
+        "className": "Game.Checkpoint"
+      },
+      "Transform": {
+        "position": [
+          5.5,
+          -0.75
         ],
         "rotation": 0.0,
         "scale": [

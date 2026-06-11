@@ -57,17 +57,24 @@ namespace Editor::Nodes
             return std::format("{}f", v);
         }
 
+        // The typed "nothing connected" literal for a data pin.
+        std::string defaultOf(PinType t)
+        {
+            if (t == PinType::Bool) return "false";
+            if (t == PinType::Vec2) return "Vector2.Zero";
+            return "0f";
+        }
+
         std::string exprOfOutput(Graph const& g, Node const& n, Pin const& out);
 
         // The C# expression flowing into an input pin (or a typed default if open).
         std::string exprOfInput(Graph const& g, Pin const& in)
         {
-            std::string const fallback = (in.type == PinType::Bool) ? "false" : "0f";
             int const src = sourceOf(g, in.id);
             if (src < 0)
-                return fallback;              // unconnected data input
+                return defaultOf(in.type);    // unconnected data input
             auto const [n, p] = ownerOfOutput(g, src);
-            return (n && p) ? exprOfOutput(g, *n, *p) : fallback;
+            return (n && p) ? exprOfOutput(g, *n, *p) : defaultOf(in.type);
         }
 
         std::string exprOfOutput(Graph const& g, Node const& n, Pin const& out)
@@ -80,13 +87,40 @@ namespace Editor::Nodes
                 return "Time.Elapsed";
             if (n.type == "KeyDown")
                 return "Input.IsKeyDown(Key." + n.param + ")";
+            if (n.type == "MouseDown")
+                return "Input.IsMouseDown(MouseButton." + n.param + ")";
+            if (n.type == "MousePos")
+                return "Input.MousePosition";
+            if (n.type == "GetPosition")
+                return "Entity.Position";
+            if (n.type == "GetVar" || n.type == "GetVarB")
+                return n.param.empty() ? defaultOf(out.type) : n.param;
+            if ((n.type == "OnCollisionEnter" || n.type == "OnCollisionExit") && out.name == "Normal")
+                return "collision.Normal";
             if (n.type == "Add" && n.inputs.size() >= 2)
                 return "(" + exprOfInput(g, n.inputs[0]) + " + " + exprOfInput(g, n.inputs[1]) + ")";
             if (n.type == "Multiply" && n.inputs.size() >= 2)
                 return "(" + exprOfInput(g, n.inputs[0]) + " * " + exprOfInput(g, n.inputs[1]) + ")";
             if (n.type == "Greater" && n.inputs.size() >= 2)
                 return "(" + exprOfInput(g, n.inputs[0]) + " > " + exprOfInput(g, n.inputs[1]) + ")";
-            return (out.type == PinType::Bool) ? "false" : "0f";
+            if (n.type == "MakeVec2" && n.inputs.size() >= 2)
+                return "new Vector2(" + exprOfInput(g, n.inputs[0]) + ", " + exprOfInput(g, n.inputs[1]) + ")";
+            if (n.type == "SplitVec2" && !n.inputs.empty())
+                return exprOfInput(g, n.inputs[0]) + "." + out.name;   // sources parenthesize themselves
+            if (n.type == "AddVec2" && n.inputs.size() >= 2)
+                return "(" + exprOfInput(g, n.inputs[0]) + " + " + exprOfInput(g, n.inputs[1]) + ")";
+            if (n.type == "ScaleVec2" && n.inputs.size() >= 2)
+                return "(" + exprOfInput(g, n.inputs[0]) + " * " + exprOfInput(g, n.inputs[1]) + ")";
+            return defaultOf(out.type);
+        }
+
+        // The expression feeding a node's first data input of type `t`.
+        std::string inputOfType(Graph const& g, Node const& n, PinType t)
+        {
+            for (auto const& in : n.inputs)
+                if (in.type == t)
+                    return exprOfInput(g, in);
+            return defaultOf(t);
         }
 
         // The expressions feeding a node's Float inputs, in pin order
@@ -121,6 +155,14 @@ namespace Editor::Nodes
                 if (a.size() >= 2)
                     return pad + "Entity.Position += new Vector2(" + a[0] + ", " + a[1] + ");\n";
             }
+            if (n.type == "SetVelocityV")
+                return pad + "Entity.Velocity = " + inputOfType(g, n, PinType::Vec2) + ";\n";
+            if (n.type == "MoveV")
+                return pad + "Entity.Position += " + inputOfType(g, n, PinType::Vec2) + ";\n";
+            if (n.type == "SetVar" && !n.param.empty())
+                return pad + n.param + " = " + inputOfType(g, n, PinType::Float) + ";\n";
+            if (n.type == "SetVarB" && !n.param.empty())
+                return pad + n.param + " = " + inputOfType(g, n, PinType::Bool) + ";\n";
             return {};
         }
 
@@ -170,6 +212,17 @@ namespace Editor::Nodes
         o += "// AUTO-GENERATED from a node graph. Do not edit by hand.\n";
         o += "public sealed class " + className + " : Script\n{\n";
 
+        // Graph variables become fields (defaults only for now), read and
+        // written by the Get/Set Variable nodes.
+        for (auto const& v : g.variables)
+        {
+            bool const isBool = (v.type == Variable::Type::Bool);
+            o += "    public " + std::string { isBool ? "bool" : "float" } + " " + v.name
+               + " = " + (isBool ? (v.def != 0.0 ? "true" : "false") : fmtNum(v.def)) + ";\n";
+        }
+        if (!g.variables.empty())
+            o += "\n";
+
         auto emitEvent = [&](Node const& n, std::string const& signature)
         {
             o += "    public override void " + signature + "\n    {\n";
@@ -180,8 +233,12 @@ namespace Editor::Nodes
 
         for (auto const& n : g.nodes)
         {
-            if (n.type == "OnCreate")      emitEvent(n, "OnCreate()");
-            else if (n.type == "OnUpdate") emitEvent(n, "OnUpdate(float dt)");
+            if (n.type == "OnCreate")              emitEvent(n, "OnCreate()");
+            else if (n.type == "OnUpdate")         emitEvent(n, "OnUpdate(float dt)");
+            else if (n.type == "OnCollisionEnter") emitEvent(n, "OnCollisionEnter(Collision collision)");
+            else if (n.type == "OnCollisionExit")  emitEvent(n, "OnCollisionExit(Collision collision)");
+            else if (n.type == "OnTriggerEnter")   emitEvent(n, "OnTriggerEnter(Entity other)");
+            else if (n.type == "OnTriggerExit")    emitEvent(n, "OnTriggerExit(Entity other)");
         }
 
         o += "}";

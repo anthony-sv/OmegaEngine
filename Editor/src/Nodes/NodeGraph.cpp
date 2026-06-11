@@ -32,6 +32,16 @@ namespace Editor::Nodes
     {
         json root;
         root["next"] = g.next;
+        root["kind"] = (g.kind == GraphKind::Calc) ? "calc" : "behavior";
+
+        json vars = json::array();
+        for (auto const& v : g.variables)
+            vars.push_back({
+                { "name", v.name },
+                { "type", (v.type == Variable::Type::Bool) ? "bool" : "float" },
+                { "default", v.def },
+            });
+        root["variables"] = std::move(vars);
 
         json nodes = json::array();
         for (auto const& n : g.nodes)
@@ -83,6 +93,16 @@ namespace Editor::Nodes
 
         g = Graph {};
         g.next = root.value("next", 1);
+        g.kind = (root.value("kind", std::string { "behavior" }) == "calc")
+                     ? GraphKind::Calc : GraphKind::Behavior;
+
+        for (auto const& jv : root.value("variables", json::array()))
+            g.variables.push_back({
+                jv.value("name", std::string {}),
+                (jv.value("type", std::string { "float" }) == "bool")
+                    ? Variable::Type::Bool : Variable::Type::Float,
+                jv.value("default", 0.0),
+            });
 
         for (auto const& jn : root.value("nodes", json::array()))
         {

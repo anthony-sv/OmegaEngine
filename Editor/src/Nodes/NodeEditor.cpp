@@ -98,6 +98,10 @@ namespace Editor::Nodes
                 auto const b = evalInput(g, n.inputs[1], depth);
                 return (a && b) ? std::optional { (*a > *b) ? 1.0 : 0.0 } : std::nullopt;
             }
+            if (n.type == "GetVar" || n.type == "GetVarB")
+                for (auto const& v : g.variables)
+                    if (v.name == n.param)
+                        return v.def;   // editor preview = the declared default
             return std::nullopt;   // dt / Time / KeyDown / actions -> runtime only
         }
 
@@ -161,6 +165,69 @@ namespace Editor::Nodes
             connected.insert(l.to);
         }
 
+        // ── Header strip (regular ImGui -- combos/popups are fine here,
+        //    OUTSIDE the node canvas) ──
+        {
+            int kind = (m_graph.kind == GraphKind::Calc) ? 1 : 0;
+            ImGui::SetNextItemWidth(110.0f);
+            if (ImGui::Combo("##kind", &kind, "Behavior\0Calc\0"))
+                m_graph.kind = (kind == 1) ? GraphKind::Calc : GraphKind::Behavior;
+            ImGui::SameLine();
+            ImGui::TextDisabled(m_graph.kind == GraphKind::Calc
+                ? "calc: live values only, never generates a class"
+                : "behavior: Save generates class Game.%s", m_name.c_str());
+        }
+
+        // Graph variables: name + type + default. They become public fields on
+        // the generated class; Get/Set Variable nodes pick from this list.
+        if (ImGui::CollapsingHeader("Variables"))
+        {
+            int removeAt = -1;
+            for (int i = 0; i < static_cast<int>(m_graph.variables.size()); ++i)
+            {
+                auto& v = m_graph.variables[i];
+                ImGui::PushID(i);
+
+                char buf[64] = {};
+                v.name.copy(buf, sizeof(buf) - 1);
+                ImGui::SetNextItemWidth(140.0f);
+                if (ImGui::InputText("##name", buf, sizeof(buf)))
+                    v.name = buf;
+
+                ImGui::SameLine();
+                int type = (v.type == Variable::Type::Bool) ? 1 : 0;
+                ImGui::SetNextItemWidth(70.0f);
+                if (ImGui::Combo("##type", &type, "float\0bool\0"))
+                    v.type = (type == 1) ? Variable::Type::Bool : Variable::Type::Float;
+
+                ImGui::SameLine();
+                if (v.type == Variable::Type::Float)
+                {
+                    float f = static_cast<float>(v.def);
+                    ImGui::SetNextItemWidth(90.0f);
+                    if (ImGui::DragFloat("##def", &f, 0.05f))
+                        v.def = f;
+                }
+                else
+                {
+                    bool b = (v.def != 0.0);
+                    if (ImGui::Checkbox("##def", &b))
+                        v.def = b ? 1.0 : 0.0;
+                }
+
+                ImGui::SameLine();
+                if (ImGui::SmallButton("X"))
+                    removeAt = i;
+
+                ImGui::PopID();
+            }
+            if (removeAt >= 0)
+                m_graph.variables.erase(m_graph.variables.begin() + removeAt);
+            if (ImGui::SmallButton("+ Add Variable"))
+                m_graph.variables.push_back({ "var" + std::to_string(m_graph.variables.size() + 1),
+                                              Variable::Type::Float, 0.0 });
+        }
+
         ImGui::TextDisabled("right-click: add node   |   drag pin -> pin: connect   |   middle-drag: pan   |   Del: remove");
 
         ImVec2 const openPopupPos = ImGui::GetMousePos();
@@ -185,12 +252,26 @@ namespace Editor::Nodes
                     node.value = v;
             }
 
-            // Choice param (e.g. Key Down's key). A combo would open a popup,
-            // which imgui-node-editor can't host inside the canvas -- so step
-            // through the options with a pair of arrow buttons instead.
-            if (spec != nullptr && !spec->options.empty())
+            // Choice param (Key Down's key, a variable node's variable). A
+            // combo would open a popup, which imgui-node-editor can't host
+            // inside the canvas -- so step through the options with a pair of
+            // arrow buttons instead. Variable nodes pick from the graph's
+            // declared variables of the matching type (not the static spec).
+            bool const isVarNode = node.type.starts_with("GetVar") || node.type.starts_with("SetVar");
+            std::vector<std::string> varOpts;
+            if (isVarNode)
             {
-                auto const& opts = spec->options;
+                bool const wantBool = node.type.ends_with("B");
+                for (auto const& v : m_graph.variables)
+                    if ((v.type == Variable::Type::Bool) == wantBool)
+                        varOpts.push_back(v.name);
+            }
+            auto const& opts = isVarNode ? varOpts
+                             : (spec != nullptr) ? spec->options
+                             : varOpts;   // (empty)
+
+            if (!opts.empty())
+            {
                 int idx = 0;
                 for (int i = 0; i < static_cast<int>(opts.size()); ++i)
                     if (opts[i] == node.param)
@@ -201,11 +282,13 @@ namespace Editor::Nodes
                 if (ImGui::ArrowButton(("##p" + tag).c_str(), ImGuiDir_Left))
                     node.param = opts[(idx + count - 1) % count];
                 ImGui::SameLine();
-                ImGui::TextUnformatted(node.param.c_str());
+                ImGui::TextUnformatted(node.param.empty() ? "(pick)" : node.param.c_str());
                 ImGui::SameLine();
                 if (ImGui::ArrowButton(("##n" + tag).c_str(), ImGuiDir_Right))
                     node.param = opts[(idx + 1) % count];
             }
+            else if (isVarNode)
+                ImGui::TextDisabled("(no variables)");
 
             // Watch -- the calc-graph probe: show its input's live value big
             // and up front (the whole point of the node).
@@ -328,7 +411,8 @@ namespace Editor::Nodes
             ImGui::Separator();
             if (ImGui::MenuItem("Fit to content"))
                 m_fit = true;
-            if (ImGui::MenuItem("Save + Generate"))
+            bool const behavior = (m_graph.kind == GraphKind::Behavior);
+            if (ImGui::MenuItem(behavior ? "Save + Generate" : "Save"))
             {
                 for (auto& n : m_graph.nodes)
                 {
@@ -338,14 +422,18 @@ namespace Editor::Nodes
                 }
                 save(m_graph, "graphs/" + m_name + ".ngraph");
 
-                // Codegen a C# Script the existing scripts pipeline builds + runs.
-                // The .cs watcher picks the write up and rebuilds, so the class
-                // "Game.<name>" hot-reloads -- a GraphComponent with this graph's
-                // name starts running it on the next Play.
-                std::error_code ec;
-                std::filesystem::create_directories("scripts/generated", ec);
-                if (std::ofstream out { "scripts/generated/" + m_name + ".cs" }; out)
-                    out << generate(m_graph, m_name);
+                // BEHAVIOR graphs codegen a C# Script the existing scripts
+                // pipeline builds + runs: the .cs watcher picks the write up
+                // and rebuilds, so class "Game.<name>" hot-reloads -- a
+                // GraphComponent with this graph's name runs it on Play.
+                // CALC graphs are editor playgrounds: .ngraph only.
+                if (behavior)
+                {
+                    std::error_code ec;
+                    std::filesystem::create_directories("scripts/generated", ec);
+                    if (std::ofstream out { "scripts/generated/" + m_name + ".cs" }; out)
+                        out << generate(m_graph, m_name);
+                }
             }
             if (ImGui::MenuItem("Reload from disk"))
             {

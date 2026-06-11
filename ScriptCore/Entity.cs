@@ -24,6 +24,11 @@ public readonly struct Entity(uint id)
     public void ApplyImpulse(Vector2 impulse) => Interop.ApplyImpulse(Id, impulse);   // instant kick (jumps)
     public void ApplyForce(Vector2 force)     => Interop.ApplyForce(Id, force);       // continuous push
 
+    // Teleport: place the entity (and its physics body, if it has one) at a
+    // point, bypassing the simulation -- for respawns and checkpoints, not
+    // movement. Velocity is preserved; zero it for a clean respawn.
+    public void Teleport(Vector2 position) => Interop.Teleport(Id, position);
+
     // -- Sprite --
     public Vector4 Color { get => Interop.GetColor(Id); set => Interop.SetColor(Id, value); }
     public void SetTexture(string path) => Interop.SetTexture(Id, path);   // swaps the sprite image (full UVs)

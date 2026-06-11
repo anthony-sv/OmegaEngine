@@ -111,6 +111,21 @@ namespace Engine::Scripting
                 g_physics->setLinearVelocity(id, { in->x, in->y });
         }
 
+        // Teleport: place the entity at a point, bypassing the simulation.
+        // Writes the Transform AND (when a body exists) moves the body itself
+        // -- writing just the Transform of a Dynamic body gets overwritten on
+        // the next physics sync, since the sim owns its pose. Velocity is
+        // PRESERVED; a respawn should zero it from the script side.
+        void __cdecl Entity_Teleport(std::uint32_t id, Vec2* in)
+        {
+            auto* t = component<ECS::Transform>(id);
+            if (t)
+                t->position = { in->x, in->y };
+            if (g_physics && g_physics->hasBody(id))
+                g_physics->setTransform(id, { in->x, in->y },
+                    (t ? t->rotation : 0.0f) * std::numbers::pi_v<float> / 180.0f);
+        }
+
         void __cdecl Body_ApplyImpulse(std::uint32_t id, Vec2* in)
         {
             if (g_physics)
@@ -224,6 +239,17 @@ namespace Engine::Scripting
             Core::Application::get().window().close();
         }
 
+        // The ACTIVE scene's name, so scripts can record where the player is
+        // (save data). Points at the world's own string -- the managed caller
+        // copies it immediately. Null when no scene manager is bound.
+        char const* __cdecl Scene_Name()
+        {
+            if (g_scenes)
+                if (auto* w = g_scenes->active())
+                    return w->name().c_str();
+            return nullptr;
+        }
+
         // -- Entity lifecycle / lookup ----------------------------------
 
         std::uint32_t __cdecl Entity_Create(char const* name)
@@ -325,6 +351,9 @@ namespace Engine::Scripting
 
             void  (__cdecl *SceneLoad)(char const*);
             void  (__cdecl *AppQuit)();
+
+            void         (__cdecl *Teleport)(std::uint32_t, Vec2*);
+            char const*  (__cdecl *SceneName)();
         };
 
         // ── Project-script build helpers ──
@@ -716,6 +745,8 @@ namespace Engine::Scripting
             .SetCameraZoom     = &Camera_SetZoom,
             .SceneLoad         = &Scene_Load,
             .AppQuit           = &App_Quit,
+            .Teleport          = &Entity_Teleport,
+            .SceneName         = &Scene_Name,
         };
         m_impl->Init(&m_impl->api);
         m_impl->ready = true;

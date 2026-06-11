@@ -4,7 +4,7 @@
 
 import Engine.Core;
 import Engine.Scene;
-import SandboxApp;
+import RuntimeApp;
 import std;
 
 namespace
@@ -80,7 +80,7 @@ auto main(int argc, char* argv[]) -> int {
     // Content root: from here on, relative paths resolve into the project.
     std::filesystem::current_path(project->root());
 
-    SandboxApp app { std::move(*project) };
+    Runtime::RuntimeApp app { std::move(*project) };
 
     auto result = app.run();
     if(!result) {

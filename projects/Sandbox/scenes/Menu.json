@@ -86,7 +86,7 @@
       "Transform": {
         "position": [
           -1.5,
-          -0.5
+          -1.6
         ],
         "rotation": 0.0,
         "scale": [
@@ -176,6 +176,32 @@
         "scale": [
           24.0,
           14.0
+        ]
+      }
+    },
+    {
+      "Name": "Opt_Continue",
+      "Text": {
+        "align": 0,
+        "color": [
+          0.9200000166893005,
+          0.9200000166893005,
+          0.9200000166893005,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.699999988079071,
+        "text": "Continue"
+      },
+      "Transform": {
+        "position": [
+          -1.5,
+          -0.5
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
         ]
       }
     }

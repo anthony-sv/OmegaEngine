@@ -1,0 +1,59 @@
+{
+  "next": 40,
+  "kind": "behavior",
+  "variables": [
+    { "name": "speed", "type": "float", "default": 2.5 }
+  ],
+  "nodes": [
+    {
+      "id": 1, "type": "OnUpdate", "title": "On Update", "x": 40.0, "y": 80.0, "value": 0.0,
+      "inputs": [],
+      "outputs": [ { "id": 2, "name": "", "type": 0 }, { "id": 3, "name": "dt", "type": 1 } ]
+    },
+    {
+      "id": 4, "type": "GetVar", "title": "Get Variable", "x": 40.0, "y": 200.0, "value": 0.0, "param": "speed",
+      "inputs": [],
+      "outputs": [ { "id": 5, "name": "Value", "type": 1 } ]
+    },
+    {
+      "id": 6, "type": "MakeVec2", "title": "Make Vec2", "x": 240.0, "y": 200.0, "value": 0.0,
+      "inputs": [ { "id": 7, "name": "X", "type": 1 }, { "id": 8, "name": "Y", "type": 1 } ],
+      "outputs": [ { "id": 9, "name": "V", "type": 2 } ]
+    },
+    {
+      "id": 10, "type": "ScaleVec2", "title": "Scale (Vec2)", "x": 440.0, "y": 160.0, "value": 0.0,
+      "inputs": [ { "id": 11, "name": "V", "type": 2 }, { "id": 12, "name": "S", "type": 1 } ],
+      "outputs": [ { "id": 13, "name": "Result", "type": 2 } ]
+    },
+    {
+      "id": 14, "type": "MoveV", "title": "Move (Vec2)", "x": 660.0, "y": 80.0, "value": 0.0,
+      "inputs": [ { "id": 15, "name": "", "type": 0 }, { "id": 16, "name": "V", "type": 2 } ],
+      "outputs": [ { "id": 17, "name": "", "type": 0 } ]
+    },
+    {
+      "id": 18, "type": "OnCollisionEnter", "title": "On Collision Enter", "x": 40.0, "y": 360.0, "value": 0.0,
+      "inputs": [],
+      "outputs": [ { "id": 19, "name": "", "type": 0 }, { "id": 20, "name": "Normal", "type": 2 } ]
+    },
+    {
+      "id": 21, "type": "SplitVec2", "title": "Split Vec2", "x": 280.0, "y": 400.0, "value": 0.0,
+      "inputs": [ { "id": 22, "name": "V", "type": 2 } ],
+      "outputs": [ { "id": 23, "name": "X", "type": 1 }, { "id": 24, "name": "Y", "type": 1 } ]
+    },
+    {
+      "id": 25, "type": "Print", "title": "Print", "x": 520.0, "y": 360.0, "value": 0.0,
+      "inputs": [ { "id": 26, "name": "", "type": 0 }, { "id": 27, "name": "Value", "type": 1 } ],
+      "outputs": [ { "id": 28, "name": "", "type": 0 } ]
+    }
+  ],
+  "links": [
+    { "id": 30, "from": 2,  "to": 15 },
+    { "id": 31, "from": 5,  "to": 7 },
+    { "id": 32, "from": 9,  "to": 11 },
+    { "id": 33, "from": 3,  "to": 12 },
+    { "id": 34, "from": 13, "to": 16 },
+    { "id": 35, "from": 19, "to": 26 },
+    { "id": 36, "from": 20, "to": 22 },
+    { "id": 37, "from": 24, "to": 27 }
+  ]
+}

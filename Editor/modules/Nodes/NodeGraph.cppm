@@ -47,11 +47,30 @@ export namespace Editor::Nodes
         int to   { 0 };   // an IN pin id
     };
 
+    // Behavior = events + actions, codegens to a C# Script on save.
+    // Calc = a pure value playground, live-evaluated in the editor only
+    // (saving writes just the .ngraph -- no class is generated).
+    enum class GraphKind { Behavior, Calc };
+
+    // A graph-level variable: becomes a public field on the generated class
+    // (default value only for now -- per-entity overrides come later). Read
+    // and written in the graph via the Get/Set Variable nodes.
+    struct Variable
+    {
+        enum class Type { Float, Bool };
+
+        std::string name {};
+        Type        type { Type::Float };
+        double      def  { 0.0 };   // bools: 0 = false, else true
+    };
+
     struct Graph
     {
-        std::vector<Node> nodes;
-        std::vector<Link> links;
-        int               next { 1 };
+        std::vector<Node>     nodes;
+        std::vector<Link>     links;
+        std::vector<Variable> variables;
+        GraphKind             kind { GraphKind::Behavior };
+        int                   next { 1 };
 
         int id() { return next++; }
     };
@@ -77,17 +96,38 @@ export namespace Editor::Nodes
             // events -- one method each in the generated class
             { "OnCreate", "On Create", {},                                                 {{ "", PinType::Exec }} },
             { "OnUpdate", "On Update", {},                                                 {{ "", PinType::Exec }, { "dt", PinType::Float }} },
+            { "OnCollisionEnter", "On Collision Enter", {},                                {{ "", PinType::Exec }, { "Normal", PinType::Vec2 }} },
+            { "OnCollisionExit",  "On Collision Exit",  {},                                {{ "", PinType::Exec }, { "Normal", PinType::Vec2 }} },
+            { "OnTriggerEnter",   "On Trigger Enter",   {},                                {{ "", PinType::Exec }} },
+            { "OnTriggerExit",    "On Trigger Exit",    {},                                {{ "", PinType::Exec }} },
 
             // data sources
             { "Constant", "Constant",  {},                                                 {{ "Value", PinType::Float }},  true },
             { "Time",     "Time",      {},                                                 {{ "Elapsed", PinType::Float }} },
             { "KeyDown",  "Key Down",  {},                                                 {{ "Down", PinType::Bool }},    false,
               { "W", "A", "S", "D", "Space", "Left", "Right", "Up", "Down", "Enter", "Escape", "LeftShift" } },
+            { "MouseDown", "Mouse Down", {},                                               {{ "Down", PinType::Bool }},    false,
+              { "Left", "Right", "Middle" } },
+            { "MousePos", "Mouse Position", {},                                            {{ "Position", PinType::Vec2 }} },
+            { "GetPosition", "Get Position", {},                                           {{ "Position", PinType::Vec2 }} },
+
+            // variables (param = the variable's name; the panel offers the
+            // graph's declared variables of the matching type)
+            { "GetVar",  "Get Variable",        {},                                        {{ "Value", PinType::Float }} },
+            { "GetVarB", "Get Variable (Bool)", {},                                        {{ "Value", PinType::Bool }} },
+            { "SetVar",  "Set Variable",        {{ "", PinType::Exec }, { "Value", PinType::Float }}, {{ "", PinType::Exec }} },
+            { "SetVarB", "Set Variable (Bool)", {{ "", PinType::Exec }, { "Value", PinType::Bool }},  {{ "", PinType::Exec }} },
 
             // math / comparison
             { "Add",      "Add",       {{ "A", PinType::Float }, { "B", PinType::Float }},  {{ "Result", PinType::Float }} },
             { "Multiply", "Multiply",  {{ "A", PinType::Float }, { "B", PinType::Float }},  {{ "Result", PinType::Float }} },
             { "Greater",  "Greater",   {{ "A", PinType::Float }, { "B", PinType::Float }},  {{ "A > B", PinType::Bool }} },
+
+            // vec2 plumbing + math
+            { "MakeVec2",  "Make Vec2",   {{ "X", PinType::Float }, { "Y", PinType::Float }}, {{ "V", PinType::Vec2 }} },
+            { "SplitVec2", "Split Vec2",  {{ "V", PinType::Vec2 }},                           {{ "X", PinType::Float }, { "Y", PinType::Float }} },
+            { "AddVec2",   "Add (Vec2)",  {{ "A", PinType::Vec2 }, { "B", PinType::Vec2 }},   {{ "Result", PinType::Vec2 }} },
+            { "ScaleVec2", "Scale (Vec2)", {{ "V", PinType::Vec2 }, { "S", PinType::Float }}, {{ "Result", PinType::Vec2 }} },
 
             // control flow
             { "Branch",   "Branch",    {{ "", PinType::Exec }, { "Condition", PinType::Bool }},
@@ -96,7 +136,11 @@ export namespace Editor::Nodes
             // actions -- statements on the exec chain
             { "SetVelocity", "Set Velocity", {{ "", PinType::Exec }, { "X", PinType::Float }, { "Y", PinType::Float }},
                                                                                             {{ "", PinType::Exec }} },
+            { "SetVelocityV", "Set Velocity (Vec2)", {{ "", PinType::Exec }, { "V", PinType::Vec2 }},
+                                                                                            {{ "", PinType::Exec }} },
             { "Move",     "Move",      {{ "", PinType::Exec }, { "X", PinType::Float }, { "Y", PinType::Float }},
+                                                                                            {{ "", PinType::Exec }} },
+            { "MoveV",    "Move (Vec2)", {{ "", PinType::Exec }, { "V", PinType::Vec2 }},
                                                                                             {{ "", PinType::Exec }} },
             { "Print",    "Print",     {{ "", PinType::Exec }, { "Value", PinType::Float }}, {{ "", PinType::Exec }} },
 

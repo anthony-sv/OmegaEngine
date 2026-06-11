@@ -60,6 +60,10 @@ internal unsafe struct NativeApi
     // scene / app control
     public delegate* unmanaged[Cdecl]<nint, void>           SceneLoad;
     public delegate* unmanaged[Cdecl]<void>                 AppQuit;
+
+    // teleport + scene query (appended -- keep the ABI order)
+    public delegate* unmanaged[Cdecl]<uint, Vector2*, void> Teleport;
+    public delegate* unmanaged[Cdecl]<nint>                 SceneName;
 }
 
 // Thin marshalling layer between the C# API surface and the native table.
@@ -147,5 +151,13 @@ internal static unsafe class Interop
         nint utf8 = Marshal.StringToCoTaskMemUTF8(name);
         try { Api.SceneLoad(utf8); }
         finally { Marshal.FreeCoTaskMem(utf8); }
+    }
+
+    public static void Teleport(uint e, Vector2 v) => Api.Teleport(e, &v);
+
+    public static string SceneName()
+    {
+        nint result = Api.SceneName();
+        return result == 0 ? "" : (Marshal.PtrToStringUTF8(result) ?? "");
     }
 }

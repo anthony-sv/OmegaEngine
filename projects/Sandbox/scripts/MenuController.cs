@@ -6,12 +6,18 @@ namespace Game;
 // Drives a vertical menu. W/Up and S/Down move the selector between the option
 // entities (found by name); D / Enter / Space activates the current one. The
 // selector is a separate entity parked just left of the chosen option.
+//
+//   Level 1  -> NEW GAME: clears the checkpoint save, loads `Level` fresh.
+//   Continue -> loads the scene recorded in the save (the checkpoint script
+//               then places the player); with no save it just starts fresh.
+//   Exit     -> quits.
 public sealed class MenuController : Script
 {
-    public string Option0  = "Opt_Level1";   // top option  -> loads `Level`
-    public string Option1  = "Opt_Exit";      // next option -> quits
+    public string Option0  = "Opt_Level1";    // new game
+    public string Option1  = "Opt_Continue";  // resume from the save
+    public string Option2  = "Opt_Exit";      // quit
     public string Selector = "Selector";       // the '>' marker entity
-    public string Level    = "Level1";         // scene loaded by option 0
+    public string Level    = "Level1";         // scene loaded by a new game
     public float  Gap      = 0.7f;             // selector distance left of an option
 
     private Entity[] _options = [];
@@ -24,7 +30,7 @@ public sealed class MenuController : Script
         // player in a previous scene).
         Camera.Position = Vector2.Zero;
 
-        _options = [Entity.Find(Option0), Entity.Find(Option1)];
+        _options = [Entity.Find(Option0), Entity.Find(Option1), Entity.Find(Option2)];
         PlaceSelector();
     }
 
@@ -66,8 +72,19 @@ public sealed class MenuController : Script
     {
         switch (_index)
         {
-            case 0:  Scene.Load(Level);     break;
-            case 1:  Application.Quit();     break;
+            case 0:   // new game: forget the old run, start at the beginning
+                Save.Delete("checkpoint.scene");
+                Save.Delete("checkpoint.tag");
+                Scene.Load(Level);
+                break;
+
+            case 1:   // continue: resume the saved scene (fresh run if none)
+                Scene.Load(Save.GetString("checkpoint.scene", Level));
+                break;
+
+            case 2:
+                Application.Quit();
+                break;
         }
     }
 }

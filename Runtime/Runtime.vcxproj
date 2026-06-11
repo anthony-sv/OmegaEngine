@@ -22,7 +22,7 @@
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{7ff921a0-b414-418d-89fd-9fa0973c5568}</ProjectGuid>
-    <RootNamespace>Sandbox</RootNamespace>
+    <RootNamespace>Runtime</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -145,10 +145,10 @@ copy /Y "$(ProjectDir)..\tools\BuildScripts.cs" "$(OutDir)"</Command>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="modules\SandboxApp.cppm" />
-    <ClCompile Include="modules\Layers\SandboxLayer.cppm" />
-    <ClCompile Include="src\SandboxApp.cpp" />
-    <ClCompile Include="src\Layers\SandboxLayer.cpp" />
+    <ClCompile Include="modules\RuntimeApp.cppm" />
+    <ClCompile Include="modules\Layers\RuntimeLayer.cppm" />
+    <ClCompile Include="src\RuntimeApp.cpp" />
+    <ClCompile Include="src\Layers\RuntimeLayer.cpp" />
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
