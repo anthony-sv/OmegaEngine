@@ -204,6 +204,50 @@
           1.0
         ]
       }
+    },
+    {
+      "Name": "Ambience",
+      "ParticleEmitter": {
+        "direction": 90.0,
+        "emitting": true,
+        "endColor": [
+          1.0,
+          1.0,
+          1.0,
+          0.0
+        ],
+        "endSize": 0.02,
+        "gravity": [
+          0.0,
+          0.0
+        ],
+        "lifetimeMax": 6.0,
+        "lifetimeMin": 4.0,
+        "maxParticles": 64,
+        "rate": 6.0,
+        "speedMax": 0.7,
+        "speedMin": 0.25,
+        "spread": 55.0,
+        "startColor": [
+          1.0,
+          1.0,
+          1.0,
+          0.35
+        ],
+        "startSize": 0.06,
+        "texture": "assets/textures/particle.png"
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -2.6
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
     }
   ],
   "name": "Menu"

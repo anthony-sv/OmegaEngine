@@ -47,6 +47,9 @@ public sealed class Checkpoint : Script
         Save.SetString("checkpoint.tag", Tag);
         Save.SetInt("checkpoint.count", Save.GetInt("checkpoint.count") + 1);
         Audio.Play("assets/audio/checkpoint.wav");
+        Particles.Burst(Entity.Position, 16, new Vector4(0.3f, 1.0f, 0.4f, 1.0f),
+                        speed: 2.8f, lifetime: 0.7f, size: 0.1f,
+                        texture: "assets/textures/particle.png");
         Console.WriteLine($"[C#] checkpoint '{Tag}' saved in scene '{Scene.Current}'");
     }
 }

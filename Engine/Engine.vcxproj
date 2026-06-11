@@ -191,6 +191,7 @@
     <ClCompile Include="modules\ECS\Engine.ECS-TransformComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-RenderComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-PhysicsComponents.cppm" />
+    <ClCompile Include="modules\ECS\Engine.ECS-ParticleComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-AnimationComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-TilemapComponents.cppm" />
     <ClCompile Include="modules\ECS\Engine.ECS-MarkerComponents.cppm" />
@@ -210,6 +211,7 @@
     <ClCompile Include="modules\Systems\Engine.Systems-MovementSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-AnimationSystem.cppm" />
     <ClCompile Include="modules\Systems\Engine.Systems-InterpolationSystem.cppm" />
+    <ClCompile Include="modules\Systems\Engine.Systems-ParticleSystem.cppm" />
     <ClCompile Include="modules\Physics\Engine.Physics.cppm" />
     <ClCompile Include="modules\Physics\Engine.Physics-Math.cppm" />
     <ClCompile Include="modules\Physics\Engine.Physics-Events.cppm" />

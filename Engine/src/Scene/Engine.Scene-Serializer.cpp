@@ -216,6 +216,28 @@ namespace Engine::Scene
                 je["Graph"] = { { "graphName", gc.graphName } };
             }
 
+            if (e.has<ParticleEmitterComponent>())
+            {
+                auto const& pe = e.get<ParticleEmitterComponent>();
+                je["ParticleEmitter"] = {
+                    { "emitting",     pe.emitting },
+                    { "rate",         pe.rate },
+                    { "lifetimeMin",  pe.lifetimeMin },
+                    { "lifetimeMax",  pe.lifetimeMax },
+                    { "speedMin",     pe.speedMin },
+                    { "speedMax",     pe.speedMax },
+                    { "direction",    pe.direction },
+                    { "spread",       pe.spread },
+                    { "gravity",      toJson(pe.gravity) },
+                    { "startColor",   toJson(pe.startColor) },
+                    { "endColor",     toJson(pe.endColor) },
+                    { "startSize",    pe.startSize },
+                    { "endSize",      pe.endSize },
+                    { "texture",      pe.texturePath },
+                    { "maxParticles", pe.maxParticles },
+                };
+            }
+
             if (e.has<TextComponent>())
             {
                 auto const& t = e.get<TextComponent>();
@@ -416,6 +438,28 @@ namespace Engine::Scene
                 GraphComponent gc;
                 gc.graphName = je["Graph"].value("graphName", std::string {});
                 e.add<GraphComponent>(std::move(gc));
+            }
+
+            if (je.contains("ParticleEmitter"))
+            {
+                auto const& jp = je["ParticleEmitter"];
+                ParticleEmitterComponent pe;
+                pe.emitting     = jp.value("emitting", true);
+                pe.rate         = jp.value("rate", 12.0f);
+                pe.lifetimeMin  = jp.value("lifetimeMin", 0.6f);
+                pe.lifetimeMax  = jp.value("lifetimeMax", 1.2f);
+                pe.speedMin     = jp.value("speedMin", 0.5f);
+                pe.speedMax     = jp.value("speedMax", 1.5f);
+                pe.direction    = jp.value("direction", 90.0f);
+                pe.spread       = jp.value("spread", 25.0f);
+                if (jp.contains("gravity"))    pe.gravity    = vec2From(jp["gravity"]);
+                if (jp.contains("startColor")) pe.startColor = vec4From(jp["startColor"]);
+                if (jp.contains("endColor"))   pe.endColor   = vec4From(jp["endColor"]);
+                pe.startSize    = jp.value("startSize", 0.12f);
+                pe.endSize      = jp.value("endSize", 0.0f);
+                pe.texturePath  = jp.value("texture", std::string {});
+                pe.maxParticles = jp.value("maxParticles", 256);
+                e.add<ParticleEmitterComponent>(std::move(pe));
             }
 
             if (je.contains("Text"))

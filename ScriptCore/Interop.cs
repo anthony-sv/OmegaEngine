@@ -71,6 +71,9 @@ internal unsafe struct NativeApi
     public delegate* unmanaged[Cdecl]<void>                 AudioStopMusic;
     public delegate* unmanaged[Cdecl]<float, void>          AudioSetMasterVolume;
     public delegate* unmanaged[Cdecl]<float, void>          AudioSetMusicVolume;
+
+    // particles (appended -- keep the ABI order)
+    public delegate* unmanaged[Cdecl]<Vector2*, int, Vector4*, float, float, float, nint, void> ParticlesBurst;
 }
 
 // Thin marshalling layer between the C# API surface and the native table.
@@ -186,4 +189,13 @@ internal static unsafe class Interop
     public static void AudioStopMusic()           => Api.AudioStopMusic();
     public static void AudioSetMasterVolume(float v) => Api.AudioSetMasterVolume(v);
     public static void AudioSetMusicVolume(float v)  => Api.AudioSetMusicVolume(v);
+
+    // -- particles --
+    public static void ParticlesBurst(Vector2 position, int count, Vector4 color,
+                                      float speed, float lifetime, float size, string? texture)
+    {
+        nint utf8 = texture is null ? 0 : Marshal.StringToCoTaskMemUTF8(texture);
+        try { Api.ParticlesBurst(&position, count, &color, speed, lifetime, size, utf8); }
+        finally { if (utf8 != 0) Marshal.FreeCoTaskMem(utf8); }
+    }
 }

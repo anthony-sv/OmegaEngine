@@ -50,6 +50,10 @@ public sealed class PlayerController : Script
             velocity.Y = JumpSpeed;
             _coyote    = 0.0f;     // consume the grounded grace so we can't double-jump
             Audio.Play("assets/audio/jump.wav");
+            Particles.Burst(Entity.Position + new Vector2(0f, -0.15f), 8,
+                            new Vector4(0.75f, 0.70f, 0.60f, 0.9f),
+                            speed: 1.2f, lifetime: 0.35f, size: 0.07f,
+                            texture: "assets/textures/particle.png");
         }
         _jumpHeld = jumpHeld;
 

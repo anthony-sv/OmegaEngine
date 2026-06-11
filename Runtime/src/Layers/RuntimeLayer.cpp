@@ -71,6 +71,7 @@ namespace Runtime
 
             w.addSystem<Engine::Systems::MovementSystem>();
             w.addSystem<Engine::Systems::AnimationSystem>();
+            w.addSystem<Engine::Systems::ParticleSystem>();
 
             // C# scripts (gameplay logic lives in the project's managed assembly).
             // managedDir = exe dir (OmegaEngine.dll + BuildScripts.cs, deployed
@@ -166,6 +167,9 @@ namespace Runtime
 
         // alpha (the fixed-step sub-frame fraction) drives render interpolation.
         Engine::Systems::RenderSystem::render(scene->registry(), *m_camera, alpha);
+
+        // Particles sit above sprites, below text.
+        Engine::Systems::ParticleSystem::render(scene->registry(), *m_camera);
 
         // Text is the foreground layer (HUD / menus), drawn on top of sprites.
         Engine::Systems::RenderSystem::renderText(scene->registry(), *m_camera);

@@ -12,9 +12,11 @@ export module Engine.Systems;
 //   :RenderSystem     -- draws sprites           (render phase)  [done]
 //   :MovementSystem   -- integrates velocity     (update phase)  [done]
 //   :AnimationSystem  -- advances sprite frames  (update phase)  [done]
-//   :PhysicsSystem    -- collisions / dynamics   (fixed step)    [later]
+//   :ParticleSystem   -- spawns/draws particles  (update+render) [done]
+//   :PhysicsSystem    -- collisions / dynamics   (fixed step)    [done -- lives in Engine.Physics]
 
 export import :RenderSystem;
 export import :MovementSystem;
 export import :AnimationSystem;
 export import :InterpolationSystem;
+export import :ParticleSystem;

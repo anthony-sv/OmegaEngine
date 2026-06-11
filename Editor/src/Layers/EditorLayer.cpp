@@ -45,6 +45,7 @@ namespace Editor
             if (src.has<MarkerComponent>())   dst.add<MarkerComponent>(src.get<MarkerComponent>());
             if (src.has<ScriptComponent>())   dst.add<ScriptComponent>(src.get<ScriptComponent>());
             if (src.has<GraphComponent>())    dst.add<GraphComponent>(src.get<GraphComponent>());
+            if (src.has<ParticleEmitterComponent>()) dst.add<ParticleEmitterComponent>(src.get<ParticleEmitterComponent>());
         }
 
         // ── Visual-scripting node panel ────────────────────────
@@ -516,6 +517,48 @@ namespace Editor
                 }
             }
 
+            if (entity.has<ParticleEmitterComponent>())
+            {
+                auto& pe = entity.get<ParticleEmitterComponent>();
+                if (ImGui::CollapsingHeader("Particle Emitter", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    ImGui::Checkbox("Emitting", &pe.emitting);
+                    ImGui::DragFloat("Rate", &pe.rate, 0.5f, 0.0f, 500.0f);
+
+                    float life[2] = { pe.lifetimeMin, pe.lifetimeMax };
+                    if (ImGui::DragFloat2("Lifetime min/max", life, 0.02f, 0.01f, 30.0f))
+                    {
+                        pe.lifetimeMin = life[0];
+                        pe.lifetimeMax = std::max(life[0], life[1]);
+                    }
+                    float speed[2] = { pe.speedMin, pe.speedMax };
+                    if (ImGui::DragFloat2("Speed min/max", speed, 0.02f))
+                    {
+                        pe.speedMin = speed[0];
+                        pe.speedMax = std::max(speed[0], speed[1]);
+                    }
+
+                    ImGui::DragFloat("Direction", &pe.direction, 1.0f, -360.0f, 360.0f);
+                    ImGui::DragFloat("Spread", &pe.spread, 1.0f, 0.0f, 180.0f);
+                    ImGui::DragFloat2("Gravity", &pe.gravity.x, 0.05f);
+                    ImGui::ColorEdit4("Start color", &pe.startColor.x);
+                    ImGui::ColorEdit4("End color", &pe.endColor.x);
+                    ImGui::DragFloat("Start size", &pe.startSize, 0.005f, 0.0f, 10.0f);
+                    ImGui::DragFloat("End size", &pe.endSize, 0.005f, 0.0f, 10.0f);
+                    ImGui::DragInt("Max particles", &pe.maxParticles, 1.0f, 1, 10000);
+
+                    // Texture path: empty = a soft colored quad. Changing it
+                    // drops the cached pointer so the system re-resolves.
+                    char buf[256] = {};
+                    pe.texturePath.copy(buf, sizeof(buf) - 1);
+                    if (ImGui::InputText("Texture", buf, sizeof(buf)))
+                    {
+                        pe.texturePath = buf;
+                        pe.texture     = nullptr;
+                    }
+                }
+            }
+
             // ── Add Component ───────────────────────────────────────────
 
             ImGui::Separator();
@@ -533,6 +576,7 @@ namespace Editor
                 if (!entity.has<MarkerComponent>()   && ImGui::MenuItem("Marker"))              entity.add<MarkerComponent>();
                 if (!entity.has<ScriptComponent>()   && ImGui::MenuItem("Script"))              entity.add<ScriptComponent>();
                 if (!entity.has<GraphComponent>()    && ImGui::MenuItem("Graph"))               entity.add<GraphComponent>();
+                if (!entity.has<ParticleEmitterComponent>() && ImGui::MenuItem("Particle Emitter")) entity.add<ParticleEmitterComponent>();
                 if (!entity.has<RigidBody2D>()       && ImGui::MenuItem("Rigid Body 2D"))       entity.add<RigidBody2D>();
 
                 // A physics body uses ONE collider (the PhysicsSystem picks
@@ -743,6 +787,10 @@ namespace Editor
                 Engine::Systems::RenderSystem::renderTilemapGrid(world->registry(), *m_camera);
 
             Engine::Systems::RenderSystem::render(world->registry(), *m_camera, alpha);
+
+            // Particles -- above sprites, below text. (They only MOVE in Play,
+            // when the systems tick; in edit mode the pools just sit still.)
+            Engine::Systems::ParticleSystem::render(world->registry(), *m_camera);
 
             // Text (HUD / menus) -- foreground, on top of sprites.
             Engine::Systems::RenderSystem::renderText(world->registry(), *m_camera);
@@ -1362,6 +1410,10 @@ namespace Editor
         // changes and the host's automatic clear doesn't fire -- drop the previous
         // session's script instances here so they don't accumulate.
         Engine::Scripting::ScriptHost::instance().clearInstances();
+
+        // Script-burst particles live in a world pool outside the snapshot --
+        // drop them too so effects don't linger into edit mode.
+        Engine::Systems::ParticleSystem::clearWorld();
     }
 
     void EditorLayer::switchScene(std::string name)
@@ -1452,6 +1504,7 @@ namespace Editor
         world.addSystem<Engine::Systems::InterpolationSystem>();   // FIRST (snapshot before movers)
         world.addSystem<Engine::Systems::MovementSystem>();
         world.addSystem<Engine::Systems::AnimationSystem>();
+        world.addSystem<Engine::Systems::ParticleSystem>();
 
         // C# scripts -- gameplay logic from the project's managed assembly.
         // managedDir = exe dir (OmegaEngine.dll + BuildScripts.cs, deployed

@@ -15,6 +15,7 @@ import Engine.Renderer;    // Texture2D (for sprite SetTexture), Camera2D
 import Engine.Physics;     // PhysicsWorld (body velocity / impulse / force)
 import Engine.Scene;       // SceneManager (script-driven scene switching)
 import Engine.Audio;       // AudioEngine (script-driven sound + music)
+import Engine.Systems;     // ParticleSystem (script-driven particle bursts)
 import std;
 
 namespace Engine::Scripting
@@ -280,6 +281,26 @@ namespace Engine::Scripting
             Audio::AudioEngine::instance().setMusicVolume(volume);
         }
 
+        // -- Particles ----------------------------------------------------
+
+        // One-off burst into the ParticleSystem's WORLD pool -- the effect
+        // outlives whatever entity fired it (a collected coin's sparkle
+        // keeps falling after the coin is destroyed).
+        void __cdecl Particles_Burst(Vec2* position, int count, Vec4* color,
+                                     float speed, float lifetime, float size,
+                                     char const* texturePath)
+        {
+            Systems::ParticleSystem::burst({
+                .position    = { position->x, position->y },
+                .count       = count,
+                .color       = { color->x, color->y, color->z, color->w },
+                .speed       = speed,
+                .lifetime    = lifetime,
+                .size        = size,
+                .texturePath = texturePath ? texturePath : std::string {},
+            });
+        }
+
         // -- Entity lifecycle / lookup ----------------------------------
 
         std::uint32_t __cdecl Entity_Create(char const* name)
@@ -390,6 +411,8 @@ namespace Engine::Scripting
             void  (__cdecl *AudioStopMusic)();
             void  (__cdecl *AudioSetMasterVolume)(float);
             void  (__cdecl *AudioSetMusicVolume)(float);
+
+            void  (__cdecl *ParticlesBurst)(Vec2*, int, Vec4*, float, float, float, char const*);
         };
 
         // ── Project-script build helpers ──
@@ -812,6 +835,7 @@ namespace Engine::Scripting
             .AudioStopMusic       = &Audio_StopMusic,
             .AudioSetMasterVolume = &Audio_SetMasterVolume,
             .AudioSetMusicVolume  = &Audio_SetMusicVolume,
+            .ParticlesBurst       = &Particles_Burst,
         };
         m_impl->Init(&m_impl->api);
         m_impl->ready = true;
