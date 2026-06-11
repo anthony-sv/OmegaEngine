@@ -14,6 +14,7 @@ import Engine.ECS;
 import Engine.Renderer;    // Texture2D (for sprite SetTexture), Camera2D
 import Engine.Physics;     // PhysicsWorld (body velocity / impulse / force)
 import Engine.Scene;       // SceneManager (script-driven scene switching)
+import Engine.Audio;       // AudioEngine (script-driven sound + music)
 import std;
 
 namespace Engine::Scripting
@@ -250,6 +251,35 @@ namespace Engine::Scripting
             return nullptr;
         }
 
+        // -- Audio (paths resolve from the project root, the cwd) ---------
+
+        void __cdecl Audio_Play(char const* path)
+        {
+            if (path)
+                Audio::AudioEngine::instance().playSound(path);
+        }
+
+        void __cdecl Audio_PlayMusic(char const* path, int loop)
+        {
+            if (path)
+                Audio::AudioEngine::instance().playMusic(path, loop != 0);
+        }
+
+        void __cdecl Audio_StopMusic()
+        {
+            Audio::AudioEngine::instance().stopMusic();
+        }
+
+        void __cdecl Audio_SetMasterVolume(float volume)
+        {
+            Audio::AudioEngine::instance().setMasterVolume(volume);
+        }
+
+        void __cdecl Audio_SetMusicVolume(float volume)
+        {
+            Audio::AudioEngine::instance().setMusicVolume(volume);
+        }
+
         // -- Entity lifecycle / lookup ----------------------------------
 
         std::uint32_t __cdecl Entity_Create(char const* name)
@@ -354,6 +384,12 @@ namespace Engine::Scripting
 
             void         (__cdecl *Teleport)(std::uint32_t, Vec2*);
             char const*  (__cdecl *SceneName)();
+
+            void  (__cdecl *AudioPlay)(char const*);
+            void  (__cdecl *AudioPlayMusic)(char const*, int);
+            void  (__cdecl *AudioStopMusic)();
+            void  (__cdecl *AudioSetMasterVolume)(float);
+            void  (__cdecl *AudioSetMusicVolume)(float);
         };
 
         // ── Project-script build helpers ──
@@ -374,8 +410,20 @@ namespace Engine::Scripting
             STARTUPINFOW si {};
             si.cb = sizeof(si);
             PROCESS_INFORMATION pi {};
-            if (!::CreateProcessW(nullptr, buffer.data(), nullptr, nullptr, TRUE,
-                                  0, nullptr, nullptr, &si, &pi))
+            if (
+                !::CreateProcessW(
+                        nullptr, 
+                        buffer.data(), 
+                        nullptr, 
+                        nullptr, 
+                        TRUE,
+                        0,
+                        nullptr, 
+                        nullptr, 
+                        &si, 
+                        &pi
+                    )
+                )
             {
                 std::println(std::cerr, "[Ω::Scripting] could not launch the script build tool");
                 return nullptr;
@@ -435,7 +483,8 @@ namespace Engine::Scripting
         {
             if (g_fieldSink && name)
                 g_fieldSink->push_back(
-                    { name, static_cast<ScriptHost::ScriptFieldType>(type), value ? value : "" });
+                    { name, static_cast<ScriptHost::ScriptFieldType>(type), value ? value : "" }
+                );
         }
     }
 
@@ -627,8 +676,10 @@ namespace Engine::Scripting
         // when it writes the assembly, the dll watch hot-reloads it.
         if (auto const newest = newestSource(m_impl->scriptsDir); newest.time > m_impl->lastBuilt)
         {
-            std::println("[Ω::Scripting] '{}' changed -> rebuilding scripts",
-                         newest.file.filename().string());
+            std::println(
+                "[Ω::Scripting] '{}' changed -> rebuilding scripts",
+                newest.file.filename().string()
+            );
             m_impl->buildProc = spawnBuildProcess(m_impl->buildTool, m_impl->scriptsDir);
             m_impl->lastBuilt = newest.time;
         }
@@ -670,8 +721,11 @@ namespace Engine::Scripting
         hostfxr_handle ctx = nullptr;
         if (int const rc = init_fptr(config.c_str(), nullptr, &ctx); rc != 0 || ctx == nullptr)
         {
-            std::println(std::cerr, "[Ω::Scripting] initialize_for_runtime_config failed: 0x{:x} ('{}')",
-                         rc, (managedDir / "OmegaEngine.runtimeconfig.json").string());
+            std::println(
+                std::cerr, 
+                "[Ω::Scripting] initialize_for_runtime_config failed: 0x{:x} ('{}')",
+                         rc, (managedDir / "OmegaEngine.runtimeconfig.json").string()
+            );
             if (ctx) close_fptr(ctx);
             return false;
         }
@@ -692,8 +746,14 @@ namespace Engine::Scripting
 
         auto resolve = [&](wchar_t const* method, void** out) -> bool
         {
-            int const rc = m_impl->load_assembly(dll.c_str(), type, method,
-                                                 UNMANAGEDCALLERSONLY_METHOD, nullptr, out);
+            int const rc = m_impl->load_assembly(
+                dll.c_str(), 
+                type, 
+                method,
+                UNMANAGEDCALLERSONLY_METHOD, 
+                nullptr, 
+                out
+            );
             if (rc != 0 || *out == nullptr)
             {
                 std::println(std::cerr, "[Ω::Scripting] could not load managed method (0x{:x})", rc);
@@ -702,11 +762,11 @@ namespace Engine::Scripting
             return true;
         };
 
-        if (!resolve(L"Init",           reinterpret_cast<void**>(&m_impl->Init)))           return false;
-        if (!resolve(L"Tick",           reinterpret_cast<void**>(&m_impl->Tick)))           return false;
-        if (!resolve(L"LoadAssembly",   reinterpret_cast<void**>(&m_impl->LoadAssembly)))   return false;
-        if (!resolve(L"BeginFrame",     reinterpret_cast<void**>(&m_impl->BeginFrame)))     return false;
-        if (!resolve(L"Clear",          reinterpret_cast<void**>(&m_impl->Clear)))          return false;
+        if (!resolve(L"Init",              reinterpret_cast<void**>(&m_impl->Init)))              return false;
+        if (!resolve(L"Tick",              reinterpret_cast<void**>(&m_impl->Tick)))              return false;
+        if (!resolve(L"LoadAssembly",      reinterpret_cast<void**>(&m_impl->LoadAssembly)))      return false;
+        if (!resolve(L"BeginFrame",        reinterpret_cast<void**>(&m_impl->BeginFrame)))        return false;
+        if (!resolve(L"Clear",             reinterpret_cast<void**>(&m_impl->Clear)))             return false;
         if (!resolve(L"OnPhysicsEvent",    reinterpret_cast<void**>(&m_impl->OnPhysicsEvent)))    return false;
         if (!resolve(L"EnumScriptClasses", reinterpret_cast<void**>(&m_impl->EnumScriptClasses))) return false;
         if (!resolve(L"DescribeFields",    reinterpret_cast<void**>(&m_impl->DescribeFields)))    return false;
@@ -714,39 +774,44 @@ namespace Engine::Scripting
         // 4. Hand C# the engine's function table (order MUST match the
         //    managed NativeApi struct).
         m_impl->api = {
-            .GetPosition   = &Entity_GetPosition,
-            .SetPosition   = &Entity_SetPosition,
-            .GetRotation   = &Entity_GetRotation,
-            .SetRotation   = &Entity_SetRotation,
-            .GetScale      = &Entity_GetScale,
-            .SetScale      = &Entity_SetScale,
-            .GetVelocity   = &Body_GetVelocity,
-            .SetVelocity   = &Body_SetVelocity,
-            .ApplyImpulse  = &Body_ApplyImpulse,
-            .ApplyForce    = &Body_ApplyForce,
-            .GetColor      = &Sprite_GetColor,
-            .SetColor      = &Sprite_SetColor,
-            .SetTexture    = &Sprite_SetTexture,
-            .SetFlipX      = &Sprite_SetFlipX,
-            .IsKeyDown     = &Input_IsKeyDown,
-            .WasKeyPressed = &Input_WasKeyPressed,
-            .IsMouseDown   = &Input_IsMouseDown,
-            .MousePosition = &Input_MousePosition,
-            .TimeDelta     = &Time_Delta,
-            .TimeElapsed   = &Time_Elapsed,
-            .Create         = &Entity_Create,
-            .Destroy        = &Entity_Destroy,
-            .Find           = &Entity_Find,
-            .IsValid        = &Entity_IsValid,
-            .GetScriptField = &Entity_GetScriptField,
-            .GetCameraPosition = &Camera_GetPosition,
-            .SetCameraPosition = &Camera_SetPosition,
-            .GetCameraZoom     = &Camera_GetZoom,
-            .SetCameraZoom     = &Camera_SetZoom,
-            .SceneLoad         = &Scene_Load,
-            .AppQuit           = &App_Quit,
-            .Teleport          = &Entity_Teleport,
-            .SceneName         = &Scene_Name,
+            .GetPosition          = &Entity_GetPosition,
+            .SetPosition          = &Entity_SetPosition,
+            .GetRotation          = &Entity_GetRotation,
+            .SetRotation          = &Entity_SetRotation,
+            .GetScale             = &Entity_GetScale,
+            .SetScale             = &Entity_SetScale,
+            .GetVelocity          = &Body_GetVelocity,
+            .SetVelocity          = &Body_SetVelocity,
+            .ApplyImpulse         = &Body_ApplyImpulse,
+            .ApplyForce           = &Body_ApplyForce,
+            .GetColor             = &Sprite_GetColor,
+            .SetColor             = &Sprite_SetColor,
+            .SetTexture           = &Sprite_SetTexture,
+            .SetFlipX             = &Sprite_SetFlipX,
+            .IsKeyDown            = &Input_IsKeyDown,
+            .WasKeyPressed        = &Input_WasKeyPressed,
+            .IsMouseDown          = &Input_IsMouseDown,
+            .MousePosition        = &Input_MousePosition,
+            .TimeDelta            = &Time_Delta,
+            .TimeElapsed          = &Time_Elapsed,
+            .Create               = &Entity_Create,
+            .Destroy              = &Entity_Destroy,
+            .Find                 = &Entity_Find,
+            .IsValid              = &Entity_IsValid,
+            .GetScriptField       = &Entity_GetScriptField,
+            .GetCameraPosition    = &Camera_GetPosition,
+            .SetCameraPosition    = &Camera_SetPosition,
+            .GetCameraZoom        = &Camera_GetZoom,
+            .SetCameraZoom        = &Camera_SetZoom,
+            .SceneLoad            = &Scene_Load,
+            .AppQuit              = &App_Quit,
+            .Teleport             = &Entity_Teleport,
+            .SceneName            = &Scene_Name,
+            .AudioPlay            = &Audio_Play,
+            .AudioPlayMusic       = &Audio_PlayMusic,
+            .AudioStopMusic       = &Audio_StopMusic,
+            .AudioSetMasterVolume = &Audio_SetMasterVolume,
+            .AudioSetMusicVolume  = &Audio_SetMusicVolume,
         };
         m_impl->Init(&m_impl->api);
         m_impl->ready = true;

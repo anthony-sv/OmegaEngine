@@ -49,6 +49,7 @@ public sealed class PlayerController : Script
         {
             velocity.Y = JumpSpeed;
             _coyote    = 0.0f;     // consume the grounded grace so we can't double-jump
+            Audio.Play("assets/audio/jump.wav");
         }
         _jumpHeld = jumpHeld;
 

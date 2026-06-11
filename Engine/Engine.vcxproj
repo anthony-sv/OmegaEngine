@@ -216,6 +216,9 @@
     <ClCompile Include="modules\Physics\Engine.Physics-PhysicsWorld.cppm" />
     <ClCompile Include="modules\Physics\Engine.Physics-PhysicsSystem.cppm" />
     <ClCompile Include="src\Physics\Engine.Physics-PhysicsWorld.cpp" />
+    <ClCompile Include="modules\Audio\Engine.Audio.cppm" />
+    <ClCompile Include="modules\Audio\Engine.Audio-AudioEngine.cppm" />
+    <ClCompile Include="src\Audio\Engine.Audio-AudioEngine.cpp" />
     <ClCompile Include="modules\Scripting\Engine.Scripting.cppm" />
     <ClCompile Include="modules\Scripting\Engine.Scripting-ScriptHost.cppm" />
     <ClCompile Include="modules\Scripting\Engine.Scripting-ScriptSystem.cppm" />

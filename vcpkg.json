@@ -24,6 +24,7 @@
     "stb",
     "entt",
     "nlohmann-json",
-    "box2d"
+    "box2d",
+    "miniaudio"
   ]
 }

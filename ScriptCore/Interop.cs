@@ -64,6 +64,13 @@ internal unsafe struct NativeApi
     // teleport + scene query (appended -- keep the ABI order)
     public delegate* unmanaged[Cdecl]<uint, Vector2*, void> Teleport;
     public delegate* unmanaged[Cdecl]<nint>                 SceneName;
+
+    // audio (appended -- keep the ABI order)
+    public delegate* unmanaged[Cdecl]<nint, void>           AudioPlay;
+    public delegate* unmanaged[Cdecl]<nint, int, void>      AudioPlayMusic;
+    public delegate* unmanaged[Cdecl]<void>                 AudioStopMusic;
+    public delegate* unmanaged[Cdecl]<float, void>          AudioSetMasterVolume;
+    public delegate* unmanaged[Cdecl]<float, void>          AudioSetMusicVolume;
 }
 
 // Thin marshalling layer between the C# API surface and the native table.
@@ -160,4 +167,23 @@ internal static unsafe class Interop
         nint result = Api.SceneName();
         return result == 0 ? "" : (Marshal.PtrToStringUTF8(result) ?? "");
     }
+
+    // -- audio --
+    public static void AudioPlay(string path)
+    {
+        nint utf8 = Marshal.StringToCoTaskMemUTF8(path);
+        try { Api.AudioPlay(utf8); }
+        finally { Marshal.FreeCoTaskMem(utf8); }
+    }
+
+    public static void AudioPlayMusic(string path, bool loop)
+    {
+        nint utf8 = Marshal.StringToCoTaskMemUTF8(path);
+        try { Api.AudioPlayMusic(utf8, loop ? 1 : 0); }
+        finally { Marshal.FreeCoTaskMem(utf8); }
+    }
+
+    public static void AudioStopMusic()           => Api.AudioStopMusic();
+    public static void AudioSetMasterVolume(float v) => Api.AudioSetMasterVolume(v);
+    public static void AudioSetMusicVolume(float v)  => Api.AudioSetMusicVolume(v);
 }

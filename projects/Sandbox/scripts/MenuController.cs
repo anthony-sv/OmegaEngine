@@ -32,6 +32,9 @@ public sealed class MenuController : Script
 
         _options = [Entity.Find(Option0), Entity.Find(Option1), Entity.Find(Option2)];
         PlaceSelector();
+
+        Audio.SetMusicVolume(0.5f);
+        Audio.PlayMusic("assets/audio/menu_music.wav");
     }
 
     public override void OnUpdate(float dt)
@@ -53,6 +56,7 @@ public sealed class MenuController : Script
         if (n == 0) return;
         _index = (_index + dir + n) % n;
         PlaceSelector();
+        Audio.Play("assets/audio/select.wav");
     }
 
     private void PlaceSelector()
@@ -75,10 +79,12 @@ public sealed class MenuController : Script
             case 0:   // new game: forget the old run, start at the beginning
                 Save.Delete("checkpoint.scene");
                 Save.Delete("checkpoint.tag");
+                Audio.StopMusic();
                 Scene.Load(Level);
                 break;
 
             case 1:   // continue: resume the saved scene (fresh run if none)
+                Audio.StopMusic();
                 Scene.Load(Save.GetString("checkpoint.scene", Level));
                 break;
 

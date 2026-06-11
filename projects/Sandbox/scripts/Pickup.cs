@@ -13,6 +13,7 @@ public sealed class Pickup : Script
         if (other.Id == Entity.Find(Collector).Id)
         {
             Console.WriteLine($"[C#] pickup collected by {Collector}");
+            Audio.Play("assets/audio/coin.wav");
             Entity.Destroy();
         }
     }

@@ -46,6 +46,7 @@ public sealed class Checkpoint : Script
         Save.SetString("checkpoint.scene", Scene.Current);
         Save.SetString("checkpoint.tag", Tag);
         Save.SetInt("checkpoint.count", Save.GetInt("checkpoint.count") + 1);
+        Audio.Play("assets/audio/checkpoint.wav");
         Console.WriteLine($"[C#] checkpoint '{Tag}' saved in scene '{Scene.Current}'");
     }
 }
