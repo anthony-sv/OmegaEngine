@@ -82,22 +82,24 @@ namespace Engine::Systems
         {
             Renderer::Renderer2D::beginBatch(camera);
 
-            // view<...>().each() yields [entity, components...] for every
-            // entity that has ALL listed components. The references point
-            // straight into EnTT's packed component arrays -- no copies.
-            auto view = registry.view<ECS::Transform, ECS::SpriteRenderer>();
+            // Collect, then draw back-to-front by zIndex (stable, so equal-z
+            // sprites keep their iteration order). A single batch makes draw
+            // order == overlap order, so an explicit key beats relying on the
+            // entity creation order (which a scene reload reshuffles).
+            struct Item { ECS::Transform t; ECS::SpriteRenderer const* s; float z; };
+            std::vector<Item> items;
 
-            for (auto&& [entity, transform, sprite] : view.each())
+            for (auto&& [entity, transform, sprite] : registry.view<ECS::Transform, ECS::SpriteRenderer>().each())
             {
-                // Skip temporarily-disabled entities. (A future
-                // optimization is to bake this into the query with
-                // entt::exclude<Disabled> so disabled entities are
-                // never visited at all.)
                 if (registry.hasComponent<ECS::Disabled>(entity))
                     continue;
-
-                drawEntity(interpolated(registry, entity, transform, alpha), sprite);
+                items.push_back({ interpolated(registry, entity, transform, alpha), &sprite, sprite.zIndex });
             }
+
+            std::ranges::stable_sort(items, [](Item const& a, Item const& b) { return a.z < b.z; });
+
+            for (auto const& it : items)
+                drawEntity(it.t, *it.s);
 
             Renderer::Renderer2D::endBatch();
         }
@@ -106,8 +108,10 @@ namespace Engine::Systems
         // baked font (cached per .ttf path). Text is the FOREGROUND layer, so
         // call this AFTER render(). Wraps its own batch pass. The Transform
         // position is the text's anchor; `align` chooses left/centre/right and
-        // it's vertically centred on the anchor.
-        static void renderText(ECS::Registry& registry, Renderer::Camera2D const& camera)
+        // it's vertically centred on the anchor. `alpha` interpolates moving
+        // text exactly like sprites (a script-anchored HUD must glide with the
+        // interpolated camera, not step per tick).
+        static void renderText(ECS::Registry& registry, Renderer::Camera2D const& camera, float alpha = 1.0f)
         {
             Renderer::Renderer2D::beginBatch(camera);
 
@@ -120,14 +124,16 @@ namespace Engine::Systems
                 if (font == nullptr)
                     continue;
 
+                auto const anchor = interpolated(registry, e, tf, alpha);
+
                 float const size  = text.size;
                 float const width = font->measure(text.text);   // EM
 
-                float originX = tf.position.x;
+                float originX = anchor.position.x;
                 if (text.align == ECS::TextComponent::Align::Center) originX -= width * size * 0.5f;
                 else if (text.align == ECS::TextComponent::Align::Right) originX -= width * size;
 
-                float const originY = tf.position.y - 0.35f * size;   // ~centre the caps on the anchor
+                float const originY = anchor.position.y - 0.35f * size;   // ~centre the caps on the anchor
 
                 float cursor = 0.0f;   // pen X in font pixels
                 for (char const c : text.text)

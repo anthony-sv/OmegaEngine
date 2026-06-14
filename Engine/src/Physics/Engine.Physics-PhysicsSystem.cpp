@@ -112,13 +112,67 @@ namespace Engine::Physics
             {
                 auto const& c = m_registry.getComponent<ECS::PolygonCollider2D>(e);
                 m_world.createPolygonBody(
-                    id, 
-                    bd, 
+                    id,
+                    bd,
                     { c.density, c.friction, c.restitution, c.isTrigger },
                     c.points
                 );
             }
+            else if (m_registry.hasComponent<ECS::ChainCollider2D>(e))
+            {
+                auto const& c = m_registry.getComponent<ECS::ChainCollider2D>(e);
+                m_world.createChainBody(id, tf.position, c.points,
+                                        c.friction, c.restitution, c.loop);
+            }
             // else: no collider -> no body (a physics body needs a shape).
+        }
+
+        // 1a. Create joints once BOTH bodies exist. The component sits on the
+        //     attached part (the wheel) and names the body it hangs off; the
+        //     name resolves through NameComponent. Box2D destroys a joint
+        //     with either of its bodies, so respawned parts re-join here.
+        auto const bodyOfName = [&](std::string const& name) -> std::optional<PhysicsWorld::EntityId>
+        {
+            for (auto&& [other, nc] : m_registry.view<ECS::NameComponent>().each())
+            {
+                auto const oid = static_cast<PhysicsWorld::EntityId>(other);
+                if (nc.name == name && m_world.hasBody(oid))
+                    return oid;
+            }
+            return std::nullopt;
+        };
+
+        for (auto&& [e, joint] : m_registry.view<ECS::RevoluteJoint2D>().each())
+        {
+            auto const id = static_cast<PhysicsWorld::EntityId>(e);
+            if (!m_world.hasBody(id) || m_world.hasJoint(id))
+                continue;
+            if (auto const other = bodyOfName(joint.connectedEntity))
+                m_world.createRevoluteJoint(
+                    id, 
+                    *other, 
+                    joint.enableMotor,
+                    glm::radians(joint.motorSpeed), 
+                    joint.maxMotorTorque
+                );
+        }
+
+        for (auto&& [e, joint] : m_registry.view<ECS::WheelJoint2D>().each())
+        {
+            auto const id = static_cast<PhysicsWorld::EntityId>(e);
+            if (!m_world.hasBody(id) || m_world.hasJoint(id))
+                continue;
+            if (auto const other = bodyOfName(joint.connectedEntity))
+                m_world.createWheelJoint(
+                    id, 
+                    *other, 
+                    joint.axis, 
+                    joint.hertz, 
+                    joint.dampingRatio,
+                    joint.enableMotor, 
+                    glm::radians(joint.motorSpeed),
+                    joint.maxMotorTorque
+                );
         }
 
         // 1b. Build a single STATIC body for every tilemap with solid tiles.

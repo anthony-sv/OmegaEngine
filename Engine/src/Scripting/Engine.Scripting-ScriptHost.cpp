@@ -134,6 +134,49 @@ namespace Engine::Scripting
                 g_physics->applyLinearImpulse(id, { in->x, in->y });
         }
 
+        // Angular axis (wheelies / leaning / spins). Box2D thinks in radians;
+        // the C# API stays in DEGREES to match Entity.Rotation.
+        float __cdecl Body_GetAngularVelocity(std::uint32_t id)
+        {
+            constexpr float toDeg = 180.0f / std::numbers::pi_v<float>;
+            return g_physics ? g_physics->getAngularVelocity(id) * toDeg : 0.0f;
+        }
+
+        void __cdecl Body_SetAngularVelocity(std::uint32_t id, float degreesPerSecond)
+        {
+            constexpr float toRad = std::numbers::pi_v<float> / 180.0f;
+            if (g_physics)
+                g_physics->setAngularVelocity(id, degreesPerSecond * toRad);
+        }
+
+        void __cdecl Body_ApplyTorque(std::uint32_t id, float torque)
+        {
+            if (g_physics)
+                g_physics->applyTorque(id, torque);
+        }
+
+        // -- Joint motors (a powered wheel; speed 0 + torque = a brake).
+        //    Degrees/second at the boundary, like everything angular. ------
+
+        void __cdecl Joint_SetMotorSpeed(std::uint32_t id, float degreesPerSecond)
+        {
+            constexpr float toRad = std::numbers::pi_v<float> / 180.0f;
+            if (g_physics)
+                g_physics->setMotorSpeed(id, degreesPerSecond * toRad);
+        }
+
+        void __cdecl Joint_SetMotorTorque(std::uint32_t id, float torque)
+        {
+            if (g_physics)
+                g_physics->setMaxMotorTorque(id, torque);
+        }
+
+        void __cdecl Joint_EnableMotor(std::uint32_t id, int enable)
+        {
+            if (g_physics)
+                g_physics->enableMotor(id, enable != 0);
+        }
+
         void __cdecl Body_ApplyForce(std::uint32_t id, Vec2* in)
         {
             if (g_physics)
@@ -281,6 +324,26 @@ namespace Engine::Scripting
             Audio::AudioEngine::instance().setMusicVolume(volume);
         }
 
+        void __cdecl Audio_SetMusicPitch(float pitch)
+        {
+            Audio::AudioEngine::instance().setMusicPitch(pitch);
+        }
+
+        // The HUD hook: scripts write into a TextComponent (gear indicator,
+        // speedo, lap timer). Only SETS existing components -- HUD entities
+        // are authored in the scene with their font/size/align.
+        void __cdecl Text_SetText(std::uint32_t id, char const* text)
+        {
+            if (auto* t = component<ECS::TextComponent>(id); t && text)
+                t->text = text;
+        }
+
+        void __cdecl Text_SetColor(std::uint32_t id, Vec4* c)
+        {
+            if (auto* t = component<ECS::TextComponent>(id))
+                t->color = { c->x, c->y, c->z, c->w };
+        }
+
         // -- Particles ----------------------------------------------------
 
         // One-off burst into the ParticleSystem's WORLD pool -- the effect
@@ -413,6 +476,19 @@ namespace Engine::Scripting
             void  (__cdecl *AudioSetMusicVolume)(float);
 
             void  (__cdecl *ParticlesBurst)(Vec2*, int, Vec4*, float, float, float, char const*);
+
+            float (__cdecl *GetAngularVelocity)(std::uint32_t);
+            void  (__cdecl *SetAngularVelocity)(std::uint32_t, float);
+            void  (__cdecl *ApplyTorque)(std::uint32_t, float);
+            void  (__cdecl *SetText)(std::uint32_t, char const*);
+
+            void  (__cdecl *AudioSetMusicPitch)(float);
+
+            void  (__cdecl *SetMotorSpeed)(std::uint32_t, float);
+            void  (__cdecl *SetMotorTorque)(std::uint32_t, float);
+            void  (__cdecl *EnableMotor)(std::uint32_t, int);
+
+            void  (__cdecl *SetTextColor)(std::uint32_t, Vec4*);
         };
 
         // ── Project-script build helpers ──
@@ -836,6 +912,15 @@ namespace Engine::Scripting
             .AudioSetMasterVolume = &Audio_SetMasterVolume,
             .AudioSetMusicVolume  = &Audio_SetMusicVolume,
             .ParticlesBurst       = &Particles_Burst,
+            .GetAngularVelocity   = &Body_GetAngularVelocity,
+            .SetAngularVelocity   = &Body_SetAngularVelocity,
+            .ApplyTorque          = &Body_ApplyTorque,
+            .SetText              = &Text_SetText,
+            .AudioSetMusicPitch   = &Audio_SetMusicPitch,
+            .SetMotorSpeed        = &Joint_SetMotorSpeed,
+            .SetMotorTorque       = &Joint_SetMotorTorque,
+            .EnableMotor          = &Joint_EnableMotor,
+            .SetTextColor         = &Text_SetColor,
         };
         m_impl->Init(&m_impl->api);
         m_impl->ready = true;

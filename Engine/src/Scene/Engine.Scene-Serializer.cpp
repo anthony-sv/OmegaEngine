@@ -70,6 +70,7 @@ namespace Engine::Scene
                     { "uvMin",        toJson(s.uvMin) },
                     { "uvMax",        toJson(s.uvMax) },
                     { "tilingFactor", s.tilingFactor },
+                    { "zIndex",       s.zIndex },
                 };
             }
 
@@ -159,6 +160,46 @@ namespace Engine::Scene
                     { "friction",    c.friction },
                     { "restitution", c.restitution },
                     { "isTrigger",   c.isTrigger },
+                };
+            }
+
+            if (e.has<ChainCollider2D>())
+            {
+                auto const& c = e.get<ChainCollider2D>();
+                json pts = json::array();
+                for (auto const& p : c.points)
+                    pts.push_back(toJson(p));
+
+                je["ChainCollider2D"] = {
+                    { "points",      pts },
+                    { "friction",    c.friction },
+                    { "restitution", c.restitution },
+                    { "loop",        c.loop },
+                };
+            }
+
+            if (e.has<RevoluteJoint2D>())
+            {
+                auto const& jt = e.get<RevoluteJoint2D>();
+                je["RevoluteJoint2D"] = {
+                    { "connected",      jt.connectedEntity },
+                    { "enableMotor",    jt.enableMotor },
+                    { "motorSpeed",     jt.motorSpeed },
+                    { "maxMotorTorque", jt.maxMotorTorque },
+                };
+            }
+
+            if (e.has<WheelJoint2D>())
+            {
+                auto const& jt = e.get<WheelJoint2D>();
+                je["WheelJoint2D"] = {
+                    { "connected",      jt.connectedEntity },
+                    { "axis",           toJson(jt.axis) },
+                    { "hertz",          jt.hertz },
+                    { "dampingRatio",   jt.dampingRatio },
+                    { "enableMotor",    jt.enableMotor },
+                    { "motorSpeed",     jt.motorSpeed },
+                    { "maxMotorTorque", jt.maxMotorTorque },
                 };
             }
 
@@ -324,6 +365,7 @@ namespace Engine::Scene
                 s.uvMin        = vec2From(js.at("uvMin"));
                 s.uvMax        = vec2From(js.at("uvMax"));
                 s.tilingFactor = js.value("tilingFactor", 1.0f);
+                s.zIndex       = js.value("zIndex", 0.0f);
 
                 // Resolve the asset path back to a live texture pointer.
                 if (!s.texturePath.empty())
@@ -523,6 +565,43 @@ namespace Engine::Scene
                 c.restitution = j.value("restitution", 0.0f);
                 c.isTrigger   = j.value("isTrigger", false);
                 e.add<PolygonCollider2D>(std::move(c));
+            }
+
+            if (je.contains("ChainCollider2D"))
+            {
+                auto const& j = je["ChainCollider2D"];
+                ChainCollider2D c;
+                for (auto const& jp : j.value("points", json::array()))
+                    c.points.push_back(vec2From(jp));
+                c.friction    = j.value("friction", 0.6f);
+                c.restitution = j.value("restitution", 0.0f);
+                c.loop        = j.value("loop", false);
+                e.add<ChainCollider2D>(std::move(c));
+            }
+
+            if (je.contains("RevoluteJoint2D"))
+            {
+                auto const& j = je["RevoluteJoint2D"];
+                RevoluteJoint2D jt;
+                jt.connectedEntity = j.value("connected", std::string {});
+                jt.enableMotor     = j.value("enableMotor", false);
+                jt.motorSpeed      = j.value("motorSpeed", 0.0f);
+                jt.maxMotorTorque  = j.value("maxMotorTorque", 10.0f);
+                e.add<RevoluteJoint2D>(std::move(jt));
+            }
+
+            if (je.contains("WheelJoint2D"))
+            {
+                auto const& j = je["WheelJoint2D"];
+                WheelJoint2D jt;
+                jt.connectedEntity = j.value("connected", std::string {});
+                if (j.contains("axis")) jt.axis = vec2From(j["axis"]);
+                jt.hertz           = j.value("hertz", 4.0f);
+                jt.dampingRatio    = j.value("dampingRatio", 0.7f);
+                jt.enableMotor     = j.value("enableMotor", false);
+                jt.motorSpeed      = j.value("motorSpeed", 0.0f);
+                jt.maxMotorTorque  = j.value("maxMotorTorque", 10.0f);
+                e.add<WheelJoint2D>(std::move(jt));
             }
             }
         }

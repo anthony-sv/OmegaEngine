@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Game</AssemblyName>
+    <RootNamespace>Game</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The engine's C# API. Private=false so OmegaEngine.dll is NOT copied
+         into Game's output; Game.dll resolves it from the already-loaded
+         engine copy at runtime. -->
+    <ProjectReference Include="..\..\..\ScriptCore\ScriptCore.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

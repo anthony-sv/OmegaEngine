@@ -1,0 +1,287 @@
+{
+  "entities": [
+    {
+      "Name": "BikeShow",
+      "SpriteRenderer": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "texturePath": "assets/textures/bike.png",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          0.4
+        ],
+        "rotation": 0.0,
+        "scale": [
+          3.4,
+          2.09
+        ]
+      }
+    },
+    {
+      "Name": "Title",
+      "Text": {
+        "align": 1,
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.95,
+        "text": "MOTO"
+      },
+      "Transform": {
+        "position": [
+          0,
+          2.3
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "BestTime",
+      "Text": {
+        "align": 1,
+        "color": [
+          1.0,
+          0.65,
+          0.1,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.28,
+        "text": ""
+      },
+      "Transform": {
+        "position": [
+          0,
+          1.65
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Opt_Race",
+      "Text": {
+        "align": 0,
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.5,
+        "text": "Race"
+      },
+      "Transform": {
+        "position": [
+          -1.0,
+          -1.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Opt_Exit",
+      "Text": {
+        "align": 0,
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.5,
+        "text": "Exit"
+      },
+      "Transform": {
+        "position": [
+          -1.0,
+          -1.9
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Selector",
+      "Text": {
+        "align": 0,
+        "color": [
+          1.0,
+          0.65,
+          0.1,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.5,
+        "text": ">"
+      },
+      "Transform": {
+        "position": [
+          -1.7,
+          -1.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Hint",
+      "Text": {
+        "align": 1,
+        "color": [
+          0.7,
+          0.7,
+          0.75,
+          1
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.22,
+        "text": "W/S  move      D / Enter  select"
+      },
+      "Transform": {
+        "position": [
+          0,
+          -2.7
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Menu",
+      "Script": {
+        "className": "Game.MenuController"
+      },
+      "Transform": {
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Ambience",
+      "ParticleEmitter": {
+        "direction": 90.0,
+        "emitting": true,
+        "endColor": [
+          1,
+          0.7,
+          0.3,
+          0
+        ],
+        "endSize": 0.02,
+        "gravity": [
+          0,
+          0
+        ],
+        "lifetimeMax": 6.0,
+        "lifetimeMin": 4.0,
+        "maxParticles": 48,
+        "rate": 5.0,
+        "speedMax": 0.6,
+        "speedMin": 0.2,
+        "spread": 60.0,
+        "startColor": [
+          1,
+          0.7,
+          0.3,
+          0.25
+        ],
+        "startSize": 0.05,
+        "texture": "assets/textures/particle.png"
+      },
+      "Transform": {
+        "position": [
+          0,
+          -3.2
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Background",
+      "SpriteRenderer": {
+        "color": [
+          0.1,
+          0.1,
+          0.14,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -30.0
+      },
+      "Transform": {
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          26,
+          16
+        ]
+      }
+    }
+  ],
+  "name": "Menu"
+}

@@ -160,6 +160,65 @@ namespace Engine::Physics
         void applyLinearImpulse(EntityId id, glm::vec2 impulse);
         void applyForce        (EntityId id, glm::vec2 force);
 
+        // Angular velocity is RADIANS/second; torque follows Box2D's sign convention (CCW > 0).
+        [[nodiscard]] float getAngularVelocity(EntityId id) const;
+        void setAngularVelocity(EntityId id, float radiansPerSecond);
+        void applyTorque       (EntityId id, float torque);
+
+
+        // -- Joints ------------------------------------------------------
+        // A joint is keyed by the ATTACHED part's entity (e.g. the wheel);
+        // `other` is the body it hangs off (the chassis). One joint per
+        // keyed entity; anchors are derived from the bodies' poses at
+        // creation (the part's current position becomes the hinge point).
+        // Box2D destroys joints with either body -- lookups self-heal.
+
+        // A hinge: the part rotates freely about its anchor; the optional
+        // motor drives that rotation (a powered wheel).
+        void createRevoluteJoint(
+            EntityId id, 
+            EntityId other,
+            bool enableMotor, 
+            float motorSpeedRad, 
+            float maxMotorTorque
+        );
+
+        // A hinge + suspension: like revolute, plus the part can slide
+        // along `axis` (local to `other`, usually {0,1}) on a spring.
+        void createWheelJoint(
+            EntityId id, 
+            EntityId other, 
+            glm::vec2 axis,
+            float hertz, 
+            float dampingRatio,
+            bool enableMotor, 
+            float motorSpeedRad, 
+            float maxMotorTorque
+        );
+
+        void destroyJoint(EntityId id);
+        [[nodiscard]] bool hasJoint(EntityId id) const;
+
+        // Motor control, either joint kind. Speed is RADIANS/second; a
+        // braking wheel is motor speed 0 with the brake's torque.
+        void setMotorSpeed    (EntityId id, float radiansPerSecond);
+        void setMaxMotorTorque(EntityId id, float torque);
+        void enableMotor      (EntityId id, bool enable);
+
+
+        // -- Chain (smooth polyline ground) --------------------------------
+        // One STATIC body with a chain shape: a seam-free one-sided surface
+        // for terrain with elevation. Box2D requires >= 4 points; `loop`
+        // closes the ring. Points are local to `position`.
+        void createChainBody(
+            EntityId id, 
+            glm::vec2 position,
+            std::span<glm::vec2 const> points,
+            float friction, 
+            float restitution, 
+            bool loop
+        );
+
 
         // -- Simulation ------------------------------------------------
         // Advance by a FIXED timestep, then buffer this step's contact

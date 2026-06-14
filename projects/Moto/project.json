@@ -1,0 +1,15 @@
+{
+    "name": "Moto",
+    "scenes": [
+        "Menu",
+        "Track"
+    ],
+    "startupScene": "Menu",
+    "window": {
+        "decorated": true,
+        "height": 720,
+        "title": "ΩmegaEngine — Moto",
+        "vsync": true,
+        "width": 1280
+    }
+}

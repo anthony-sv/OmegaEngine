@@ -29,6 +29,25 @@ public readonly struct Entity(uint id)
     // movement. Velocity is preserved; zero it for a clean respawn.
     public void Teleport(Vector2 position) => Interop.Teleport(Id, position);
 
+    // Angular axis (wheelies, leaning, spins). Degrees/second, CCW positive
+    // -- matching Rotation. Torque follows the same sign.
+    public float AngularVelocity { get => Interop.GetAngularVelocity(Id); set => Interop.SetAngularVelocity(Id, value); }
+    public void ApplyTorque(float torque) => Interop.ApplyTorque(Id, torque);
+
+    // -- Joint motor (this entity carries a Revolute/Wheel joint) --
+    // The drive of a powered wheel: speed is the TARGET (degrees/second),
+    // torque is how hard the motor pushes toward it. Speed 0 + torque on
+    // is a brake. No-ops without a joint.
+    public void SetMotorSpeed(float degreesPerSecond) => Interop.SetMotorSpeed(Id, degreesPerSecond);
+    public void SetMotorTorque(float torque)          => Interop.SetMotorTorque(Id, torque);
+    public void SetMotorEnabled(bool enabled)         => Interop.EnableMotor(Id, enabled);
+
+    // -- Text (HUD) --
+    // Writes a TextComponent's string / colour (gear indicator, speedo, lap
+    // timer). The entity must already carry one, authored in the scene.
+    public void SetText(string text)        => Interop.SetText(Id, text);
+    public void SetTextColor(Vector4 color) => Interop.SetTextColor(Id, color);
+
     // -- Sprite --
     public Vector4 Color { get => Interop.GetColor(Id); set => Interop.SetColor(Id, value); }
     public void SetTexture(string path) => Interop.SetTexture(Id, path);   // swaps the sprite image (full UVs)

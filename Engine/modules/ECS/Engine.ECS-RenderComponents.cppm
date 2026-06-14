@@ -67,6 +67,11 @@ namespace Engine::ECS
         glm::vec2 uvMax { 1.0f, 1.0f };
 
         float tilingFactor { 1.0f };
+
+        // Draw order: LOWER draws first (further back), higher on top. Lets
+        // backgrounds (negative) and foreground props sort explicitly instead
+        // of depending on entity creation order (which a scene reload shuffles).
+        float zIndex { 0.0f };
 	}; // struct SpriteRenderer
 
 

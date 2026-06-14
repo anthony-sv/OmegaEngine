@@ -63,6 +63,9 @@ namespace Engine::Audio
         void setMasterVolume(float volume);
         void setMusicVolume(float volume);
 
+        // Playback-rate multiplier.
+        void setMusicPitch(float pitch);
+
         [[nodiscard]] bool ready() const;
 
         ~AudioEngine();

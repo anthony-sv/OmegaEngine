@@ -1,7 +1,9 @@
 module;
 
 // miniaudio is a single-header library: exactly ONE translation unit
-// defines the implementation (same drill as stb).
+// defines the implementation (same drill as stb). It pulls in windows.h,
+// whose min/max macros would shadow std::max -- NOMINMAX keeps them out.
+#define NOMINMAX
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 
@@ -23,6 +25,7 @@ namespace Engine::Audio
         ma_sound  music       {};
         bool      musicLive   { false };
         float     musicVolume { 1.0f };
+        float     musicPitch  { 1.0f };
 	}; // struct AudioEngine::Impl
 
     AudioEngine& AudioEngine::instance()
@@ -86,6 +89,7 @@ namespace Engine::Audio
         m_impl->musicLive = true;
         ma_sound_set_looping(&m_impl->music, loop ? MA_TRUE : MA_FALSE);
         ma_sound_set_volume(&m_impl->music, m_impl->musicVolume);
+        ma_sound_set_pitch(&m_impl->music, m_impl->musicPitch);
         ma_sound_start(&m_impl->music);
     }
 
@@ -109,6 +113,13 @@ namespace Engine::Audio
         m_impl->musicVolume = volume;
         if (m_impl->musicLive)
             ma_sound_set_volume(&m_impl->music, volume);
+    }
+
+    void AudioEngine::setMusicPitch(float pitch)
+    {
+        m_impl->musicPitch = std::max(0.05f, pitch);
+        if (m_impl->musicLive)
+            ma_sound_set_pitch(&m_impl->music, m_impl->musicPitch);
     }
 
 } // namespace Audio

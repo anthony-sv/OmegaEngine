@@ -80,7 +80,18 @@ public static class Bootstrap
     // changes (scene switch) so recycled entity ids don't inherit stale
     // scripts from the previous scene.
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    public static void Clear() => Scripts.Clear();
+    public static void Clear()
+    {
+        // Give each instance a chance to release globals (stop a sound, etc.).
+        // The hot-reload path does its own Scripts.Clear() WITHOUT this -- a
+        // reload swaps instances, it doesn't destroy them.
+        foreach (var script in Scripts.Values)
+        {
+            try { script?.OnDestroy(); }
+            catch (Exception e) { Console.WriteLine($"[C#] OnDestroy threw: {e.Message}"); }
+        }
+        Scripts.Clear();
+    }
 
     // Hand the native sink the full name of every concrete Script subclass in
     // the loaded game assembly. Powers the editor's class picker.

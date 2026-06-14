@@ -1,3 +1,7 @@
+module;
+
+#include "glm/glm.hpp"
+
 export module RuntimeLayer;
 
 import Engine.Core;
@@ -54,6 +58,13 @@ namespace Runtime
         // constructed in onAttach (once the window/GL context exists),
         // not at layer construction time.
         std::optional<Engine::Renderer::Camera2D> m_camera;
+
+        // Camera positions of the last two FIXED ticks. Scripts move the
+        // camera per tick; rendering interpolates between these (like the
+        // transforms), else a followed sprite jitters against a stepping view.
+        glm::vec2 m_camPrev   { 0.0f, 0.0f };
+        glm::vec2 m_camCurr   { 0.0f, 0.0f };
+        bool      m_camSeeded { false };
 
         // Owns every world and tracks the active one. The layer holds the
         // MANAGER, not a World -- so multiple scenes (and switching between

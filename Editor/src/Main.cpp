@@ -7,22 +7,44 @@ import Engine.Scene;
 import EditorApp;
 import std;
 
+namespace
+{
+    // Which project to open. argv[1] accepts a BARE NAME ("Moto"), a relative
+    // path ("projects/Moto") or an absolute one. No argument = the bundled sample.
+    std::filesystem::path resolveProjectDir(int argc, char* argv[])
+    {
+        using Engine::Core::Paths;
+
+        if (argc > 1)
+        {
+            std::filesystem::path const arg { argv[1] };
+            if (std::filesystem::exists(arg / "project.json"))
+                return arg;
+            if (auto found = Paths::findUpwards(Paths::executableDir(), "projects" / arg))
+                return *found;
+            if (auto found = Paths::findUpwards(Paths::executableDir(), arg))
+                return *found;
+            return arg;   // let Project::load report the failure
+        }
+
+        return Paths::findUpwards(Paths::executableDir(), "projects/Sandbox")
+            .value_or("projects/Sandbox");
+    }
+}
+
 // Ω::main ─────────────────────────────────────────────────────────────────────
 //
 // The editor is generic: it OPENS a project folder and edits it -- the SAME
-// project the runtime plays. The project is located relative to the
-// executable (so the editor finds it no matter the working directory);
-// argv[1] overrides (the launcher will pass one). Once loaded, the working
-// directory is set to the project root so scenes/ + assets/ resolve into it.
+// project the runtime plays. The project is located by name or path (see
+// resolveProjectDir); argv[1] overrides the bundled sample (the launcher will
+// pass one). Once loaded, the working directory is set to the project root so
+// scenes/ + assets/ resolve into it.
 auto main(int argc, char* argv[]) -> int {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    std::filesystem::path const projectDir = (argc > 1)
-        ? std::filesystem::path { argv[1] }
-        : Engine::Core::Paths::findUpwards(Engine::Core::Paths::executableDir(), "projects/Sandbox")
-              .value_or("projects/Sandbox");
+    std::filesystem::path const projectDir = resolveProjectDir(argc, argv);
 
     auto project = Engine::Scene::Project::load(projectDir);
     if(!project) {

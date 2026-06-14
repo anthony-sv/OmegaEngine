@@ -1,3 +1,7 @@
+module;
+
+#include "glm/glm.hpp"
+
 module RuntimeLayer;
 
 import Engine.Core;
@@ -154,6 +158,15 @@ namespace Runtime
         // The manager applies any pending (script-requested) switch at the frame
         // boundary, then ticks the active scene's systems.
         m_sceneManager.onUpdate(dt);
+
+        // Snapshot the (script-driven) camera per tick so onRender can lerp
+        // between ticks -- the same sub-frame smoothing transforms get.
+        if (m_camera)
+        {
+            m_camPrev   = m_camSeeded ? m_camCurr : m_camera->position();
+            m_camCurr   = m_camera->position();
+            m_camSeeded = true;
+        }
     }
 
     void RuntimeLayer::onRender(float alpha)
@@ -161,6 +174,12 @@ namespace Runtime
         auto* scene = m_sceneManager.active();
         if (!scene || !m_camera)
             return;
+
+        // Draw through the INTERPOLATED camera (scripts step it per fixed
+        // tick), then restore the tick value so scripts read what they wrote.
+        glm::vec2 const liveCam = m_camera->position();
+        if (m_camSeeded)
+            m_camera->setPosition(glm::mix(m_camPrev, m_camCurr, alpha));
 
         // Tilemaps are the background layer -- drawn first, sprites on top.
         Engine::Systems::RenderSystem::renderTilemaps(scene->registry(), *m_camera);
@@ -172,7 +191,7 @@ namespace Runtime
         Engine::Systems::ParticleSystem::render(scene->registry(), *m_camera);
 
         // Text is the foreground layer (HUD / menus), drawn on top of sprites.
-        Engine::Systems::RenderSystem::renderText(scene->registry(), *m_camera);
+        Engine::Systems::RenderSystem::renderText(scene->registry(), *m_camera, alpha);
 
         // F2 -> screenshot the window (default framebuffer, captured before swap).
         if (Engine::Core::Input::wasKeyPressed(Engine::Core::Key::F2))
@@ -182,6 +201,8 @@ namespace Runtime
             if (auto r = Engine::Renderer::Screenshot::capture(path, 0, 0, win.width(), win.height()); !r)
                 std::println(std::cerr, "[Ω::Runtime] screenshot failed: {}", r.error().message);
         }
+
+        m_camera->setPosition(liveCam);
     }
 
 } // namespace Runtime

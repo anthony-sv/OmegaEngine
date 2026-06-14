@@ -65,8 +65,24 @@ namespace Engine::Physics
 
     struct PhysicsWorld::Impl
     {
-        b2WorldId                              world {};   // zero == invalid
-        std::unordered_map<EntityId, b2BodyId> bodies;
+        b2WorldId                               world {};   // zero == invalid
+        std::unordered_map<EntityId, b2BodyId>  bodies;
+        std::unordered_map<EntityId, b2JointId> joints;     // keyed by the attached part
+
+        // Box2D destroys joints with either body; entries can go stale.
+        // Resolve + self-heal in one place.
+        b2JointId jointOf(EntityId id)
+        {
+            auto it = joints.find(id);
+            if (it == joints.end())
+                return b2_nullJointId;
+            if (!b2Joint_IsValid(it->second))
+            {
+                joints.erase(it);
+                return b2_nullJointId;
+            }
+            return it->second;
+        }
 
         std::vector<ContactPair> contactBegin, contactEnd;
         std::vector<SensorPair>  sensorBegin,  sensorEnd;
@@ -221,6 +237,196 @@ namespace Engine::Physics
     {
         if (auto it = m_impl->bodies.find(id); it != m_impl->bodies.end())
             b2Body_ApplyForceToCenter(it->second, toB2(force), true);
+    }
+
+    float PhysicsWorld::getAngularVelocity(EntityId id) const
+    {
+        if (auto it = m_impl->bodies.find(id); it != m_impl->bodies.end())
+            return b2Body_GetAngularVelocity(it->second);
+        return 0.0f;
+    }
+
+    // =================================================================
+    //  Joints
+    // =================================================================
+
+    void PhysicsWorld::createRevoluteJoint(
+        EntityId id, 
+        EntityId other,
+        bool enableMotor, 
+        float motorSpeedRad, 
+        float maxMotorTorque
+    )
+    {
+        auto const a = m_impl->bodies.find(other);   // the chassis
+        auto const b = m_impl->bodies.find(id);      // the attached part
+        if (a == m_impl->bodies.end() || b == m_impl->bodies.end() || hasJoint(id))
+            return;
+
+        b2RevoluteJointDef def = b2DefaultRevoluteJointDef();
+        def.bodyIdA        = a->second;
+        def.bodyIdB        = b->second;
+        def.localAnchorA   = b2Body_GetLocalPoint(a->second, b2Body_GetPosition(b->second));
+        def.localAnchorB   = b2Vec2 { 0.0f, 0.0f };   // hinge at the part's centre
+        def.enableMotor    = enableMotor;
+        def.motorSpeed     = motorSpeedRad;
+        def.maxMotorTorque = maxMotorTorque;
+        m_impl->joints[id] = b2CreateRevoluteJoint(m_impl->world, &def);
+        std::println("[Ω::Physics] revolute joint: entity {} -> {}", id, other);
+    }
+
+    void PhysicsWorld::createWheelJoint(EntityId id, EntityId other, glm::vec2 axis,
+                                        float hertz, float dampingRatio,
+                                        bool enableMotor, float motorSpeedRad, float maxMotorTorque)
+    {
+        auto const a = m_impl->bodies.find(other);
+        auto const b = m_impl->bodies.find(id);
+        if (a == m_impl->bodies.end() || b == m_impl->bodies.end() || hasJoint(id))
+            return;
+
+        float const len = std::sqrt(axis.x * axis.x + axis.y * axis.y);
+        b2Vec2 const localAxis = (len > 0.0001f)
+            ? b2Vec2 { axis.x / len, axis.y / len }
+            : b2Vec2 { 0.0f, 1.0f };
+
+        b2WheelJointDef def = b2DefaultWheelJointDef();
+        def.bodyIdA        = a->second;
+        def.bodyIdB        = b->second;
+        def.localAnchorA   = b2Body_GetLocalPoint(a->second, b2Body_GetPosition(b->second));
+        def.localAnchorB   = b2Vec2 { 0.0f, 0.0f };
+        def.localAxisA     = localAxis;
+        def.enableSpring   = true;
+        def.hertz          = hertz;
+        def.dampingRatio   = dampingRatio;
+
+        // Real suspension has TRAVEL. Without a limit the part can slide
+        // arbitrarily far along the axis (only the spring resists) and a
+        // hard launch flings the wheel away from the bike.
+        def.enableLimit      = true;
+        def.lowerTranslation = -0.2f;
+        def.upperTranslation =  0.2f;
+        def.enableMotor    = enableMotor;
+        def.motorSpeed     = motorSpeedRad;
+        def.maxMotorTorque = maxMotorTorque;
+        m_impl->joints[id] = b2CreateWheelJoint(m_impl->world, &def);
+        std::println("[Ω::Physics] wheel joint: entity {} -> {} (hertz {}, damping {})",
+                     id, other, hertz, dampingRatio);
+    }
+
+    void PhysicsWorld::destroyJoint(EntityId id)
+    {
+        if (b2JointId j = m_impl->jointOf(id); b2Joint_IsValid(j))
+            b2DestroyJoint(j);
+        m_impl->joints.erase(id);
+    }
+
+    bool PhysicsWorld::hasJoint(EntityId id) const
+    {
+        return B2_IS_NON_NULL(m_impl->jointOf(id));
+    }
+
+    void PhysicsWorld::setMotorSpeed(EntityId id, float radiansPerSecond)
+    {
+        b2JointId const j = m_impl->jointOf(id);
+        if (B2_IS_NULL(j))
+            return;
+        if (b2Joint_GetType(j) == b2_revoluteJoint) b2RevoluteJoint_SetMotorSpeed(j, radiansPerSecond);
+        else if (b2Joint_GetType(j) == b2_wheelJoint) b2WheelJoint_SetMotorSpeed(j, radiansPerSecond);
+        b2Joint_WakeBodies(j);   // motor setters do NOT wake a sleeping island
+    }
+
+    void PhysicsWorld::setMaxMotorTorque(EntityId id, float torque)
+    {
+        b2JointId const j = m_impl->jointOf(id);
+        if (B2_IS_NULL(j))
+            return;
+        if (b2Joint_GetType(j) == b2_revoluteJoint) b2RevoluteJoint_SetMaxMotorTorque(j, torque);
+        else if (b2Joint_GetType(j) == b2_wheelJoint) b2WheelJoint_SetMaxMotorTorque(j, torque);
+        if (torque > 0.0f)
+            b2Joint_WakeBodies(j);
+    }
+
+    void PhysicsWorld::enableMotor(EntityId id, bool enable)
+    {
+        b2JointId const j = m_impl->jointOf(id);
+        if (B2_IS_NULL(j))
+            return;
+        if (b2Joint_GetType(j) == b2_revoluteJoint) b2RevoluteJoint_EnableMotor(j, enable);
+        else if (b2Joint_GetType(j) == b2_wheelJoint) b2WheelJoint_EnableMotor(j, enable);
+        b2Joint_WakeBodies(j);
+    }
+
+    // =================================================================
+    //  Chain (terrain polyline)
+    // =================================================================
+
+    void PhysicsWorld::createChainBody(
+        EntityId id, 
+        glm::vec2 position,
+        std::span<glm::vec2 const> points,
+        float friction, 
+        float restitution, 
+        bool loop
+    )
+    {
+        if (points.size() < 4)   // Box2D's minimum
+        {
+            std::println(std::cerr, "[Ω::Physics] chain needs >= 4 points (got {})", points.size());
+            return;
+        }
+
+        BodyDef bd;
+        bd.type     = BodyType::Static;
+        bd.position = position;
+        b2BodyId const body = createBodyRaw(m_impl->world, id, bd);
+        std::println("[Ω::Physics] chain collider built: {} points", points.size());
+
+        // An OPEN chain's first and last points are GHOST vertices (adjacency
+        // hints) -- they produce NO solid segment. Synthesize them by
+        // extending the ends colinearly, so every point the AUTHOR placed
+        // becomes real ground. (Cost one wheel a long debugging session.)
+        std::vector<b2Vec2> pts;
+        pts.reserve(points.size() + 2);
+        if (!loop)
+        {
+            glm::vec2 const d = points[0] - points[1];
+            float const len   = std::max(0.001f, std::sqrt(d.x * d.x + d.y * d.y));
+            pts.push_back(toB2(points[0] + d * (2.0f / len)));
+        }
+        for (auto const& p : points)
+            pts.push_back(toB2(p));
+        if (!loop)
+        {
+            glm::vec2 const d = points[points.size() - 1] - points[points.size() - 2];
+            float const len   = std::max(0.001f, std::sqrt(d.x * d.x + d.y * d.y));
+            pts.push_back(toB2(points[points.size() - 1] + d * (2.0f / len)));
+        }
+
+        b2SurfaceMaterial material = b2DefaultSurfaceMaterial();
+        material.friction    = friction;
+        material.restitution = restitution;
+
+        b2ChainDef def     = b2DefaultChainDef();
+        def.points         = pts.data();
+        def.count          = static_cast<int>(pts.size());
+        def.materials      = &material;
+        def.materialCount  = 1;
+        def.isLoop         = loop;
+        b2CreateChain(body, &def);
+
+        m_impl->bodies[id] = body;
+    }
+
+    void PhysicsWorld::setAngularVelocity(EntityId id, float radiansPerSecond)
+    {
+        if (auto it = m_impl->bodies.find(id); it != m_impl->bodies.end())
+            b2Body_SetAngularVelocity(it->second, radiansPerSecond);
+    }
+
+    void PhysicsWorld::applyTorque(EntityId id, float torque)
+    {
+        if (auto it = m_impl->bodies.find(id); it != m_impl->bodies.end())
+            b2Body_ApplyTorque(it->second, torque, true);
     }
 
     // =================================================================

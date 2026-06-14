@@ -1,0 +1,1595 @@
+{
+  "entities": [
+    {
+      "BoxCollider2D": {
+        "density": 5.0,
+        "friction": 0.3,
+        "isTrigger": false,
+        "offset": [
+          0.0,
+          0.25
+        ],
+        "restitution": 0.0,
+        "size": [
+          1.5,
+          0.3
+        ]
+      },
+      "Name": "Bike",
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 1
+      },
+      "Script": {
+        "className": "Game.Bike"
+      },
+      "SpriteRenderer": {
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "texturePath": "assets/textures/bike.png",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ]
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          -0.3
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.8,
+          1.107
+        ]
+      }
+    },
+    {
+      "CircleCollider2D": {
+        "density": 1.2,
+        "friction": 1.4,
+        "isTrigger": false,
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "radius": 0.3,
+        "restitution": 0.0
+      },
+      "Name": "RearWheel",
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 1
+      },
+      "Transform": {
+        "position": [
+          -0.55,
+          -0.55
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      },
+      "WheelJoint2D": {
+        "axis": [
+          0.0,
+          1.0
+        ],
+        "connected": "Bike",
+        "dampingRatio": 0.9,
+        "enableMotor": true,
+        "hertz": 8.0,
+        "maxMotorTorque": 0.0,
+        "motorSpeed": 0.0
+      }
+    },
+    {
+      "CircleCollider2D": {
+        "density": 1.2,
+        "friction": 1.4,
+        "isTrigger": false,
+        "offset": [
+          0.0,
+          0.0
+        ],
+        "radius": 0.3,
+        "restitution": 0.0
+      },
+      "Name": "FrontWheel",
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 1
+      },
+      "Transform": {
+        "position": [
+          0.55,
+          -0.55
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      },
+      "WheelJoint2D": {
+        "axis": [
+          0.0,
+          1.0
+        ],
+        "connected": "Bike",
+        "dampingRatio": 0.9,
+        "enableMotor": true,
+        "hertz": 8.0,
+        "maxMotorTorque": 0.0,
+        "motorSpeed": 0.0
+      }
+    },
+    {
+      "ChainCollider2D": {
+        "friction": 0.9,
+        "loop": false,
+        "points": [
+          [
+            395,
+            -1.0
+          ],
+          [
+            370,
+            -1.0
+          ],
+          [
+            330,
+            -1.0
+          ],
+          [
+            300,
+            -1.0
+          ],
+          [
+            270,
+            -0.8
+          ],
+          [
+            240,
+            -1.4
+          ],
+          [
+            210,
+            -1.4
+          ],
+          [
+            180,
+            -0.2
+          ],
+          [
+            150,
+            0.9
+          ],
+          [
+            120,
+            0.8
+          ],
+          [
+            90,
+            -0.4
+          ],
+          [
+            50,
+            -1.0
+          ],
+          [
+            0,
+            -1.0
+          ],
+          [
+            -30,
+            -1.0
+          ]
+        ],
+        "restitution": 0.0
+      },
+      "Name": "Terrain",
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 0
+      },
+      "Transform": {
+        "position": [
+          0.0,
+          0.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "Name": "StartPost",
+      "SpriteRenderer": {
+        "color": [
+          0.95,
+          0.95,
+          0.95,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ]
+      },
+      "Transform": {
+        "position": [
+          0,
+          -0.2
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.12,
+          1.4
+        ]
+      }
+    },
+    {
+      "Name": "FinishPost",
+      "SpriteRenderer": {
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ]
+      },
+      "Transform": {
+        "position": [
+          350,
+          0.2
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.15,
+          2.4
+        ]
+      }
+    },
+    {
+      "BoxCollider2D": {
+        "density": 1.0,
+        "friction": 0.0,
+        "isTrigger": true,
+        "offset": [
+          0,
+          0
+        ],
+        "restitution": 0.0,
+        "size": [
+          0.4,
+          3.0
+        ]
+      },
+      "Marker": {
+        "tag": "finish",
+        "type": 1
+      },
+      "Name": "Finish",
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 0
+      },
+      "Script": {
+        "className": "Game.FinishLine"
+      },
+      "Transform": {
+        "position": [
+          350,
+          0.4
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "FinishText",
+      "Text": {
+        "align": 1,
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.4,
+        "text": "FINISH"
+      },
+      "Transform": {
+        "position": [
+          350,
+          1.8
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "ResultText",
+      "Text": {
+        "align": 1,
+        "color": [
+          1.0,
+          0.85,
+          0.2,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.45,
+        "text": ""
+      },
+      "Transform": {
+        "position": [
+          350,
+          2.5
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "StartHint",
+      "Text": {
+        "align": 1,
+        "color": [
+          1,
+          1,
+          1,
+          0.85
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.22,
+        "text": "W throttle    E/Q shift    SPACE front brake    S rear brake    A/D lean    R restart"
+      },
+      "Transform": {
+        "position": [
+          2.5,
+          1.6
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Board100",
+      "Text": {
+        "align": 1,
+        "color": [
+          1,
+          1,
+          1,
+          0.7
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.3,
+        "text": "100m"
+      },
+      "Transform": {
+        "position": [
+          100,
+          1.7
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Post100",
+      "SpriteRenderer": {
+        "color": [
+          0.9,
+          0.9,
+          0.9,
+          0.8
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ]
+      },
+      "Transform": {
+        "position": [
+          100,
+          0.4000000000000001
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.08,
+          0.7
+        ]
+      }
+    },
+    {
+      "Name": "Board200",
+      "Text": {
+        "align": 1,
+        "color": [
+          1,
+          1,
+          1,
+          0.7
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.3,
+        "text": "200m"
+      },
+      "Transform": {
+        "position": [
+          200,
+          0.7
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Post200",
+      "SpriteRenderer": {
+        "color": [
+          0.9,
+          0.9,
+          0.9,
+          0.8
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ]
+      },
+      "Transform": {
+        "position": [
+          200,
+          -0.6
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.08,
+          0.7
+        ]
+      }
+    },
+    {
+      "Name": "Board300",
+      "Text": {
+        "align": 1,
+        "color": [
+          1,
+          1,
+          1,
+          0.7
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.3,
+        "text": "300m"
+      },
+      "Transform": {
+        "position": [
+          300,
+          0.7
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "Post300",
+      "SpriteRenderer": {
+        "color": [
+          0.9,
+          0.9,
+          0.9,
+          0.8
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ]
+      },
+      "Transform": {
+        "position": [
+          300,
+          -0.6
+        ],
+        "rotation": 0.0,
+        "scale": [
+          0.08,
+          0.7
+        ]
+      }
+    },
+    {
+      "Name": "HudText",
+      "Text": {
+        "align": 1,
+        "color": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.3,
+        "text": ""
+      },
+      "Transform": {
+        "position": [
+          0,
+          2.4
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "HudRpm",
+      "Text": {
+        "align": 1,
+        "color": [
+          1.0,
+          0.85,
+          0.3,
+          1.0
+        ],
+        "font": "assets/fonts/JetBrainsMono.ttf",
+        "size": 0.24,
+        "text": ""
+      },
+      "Transform": {
+        "position": [
+          0,
+          2.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "BoxCollider2D": {
+        "density": 1.0,
+        "friction": 0.2,
+        "isTrigger": false,
+        "offset": [
+          0,
+          0
+        ],
+        "restitution": 0.3,
+        "size": [
+          1.0,
+          8.0
+        ]
+      },
+      "Name": "EndWall",
+      "RigidBody2D": {
+        "fixedRotation": false,
+        "gravityScale": 1.0,
+        "mass": 1.0,
+        "type": 0
+      },
+      "Transform": {
+        "position": [
+          392.0,
+          2.0
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Name": "EndWallVis",
+      "SpriteRenderer": {
+        "color": [
+          0.6,
+          0.1,
+          0.1,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ]
+      },
+      "Transform": {
+        "position": [
+          392,
+          0.6
+        ],
+        "rotation": 0.0,
+        "scale": [
+          1.0,
+          4.4
+        ]
+      }
+    },
+    {
+      "Name": "Kerb0",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          -15.0,
+          -1.04
+        ],
+        "rotation": 0.0,
+        "scale": [
+          30.3,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb1",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          25.0,
+          -1.04
+        ],
+        "rotation": 0.0,
+        "scale": [
+          50.3,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb2",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          70.0,
+          -0.74
+        ],
+        "rotation": 0.8593722436446808,
+        "scale": [
+          40.30449974690347,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb3",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          105.0,
+          0.16
+        ],
+        "rotation": 2.29061004263853,
+        "scale": [
+          30.32399040767233,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb4",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          135.0,
+          0.81
+        ],
+        "rotation": 0.1909852243596874,
+        "scale": [
+          30.300166666203708,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb5",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          165.0,
+          0.31
+        ],
+        "rotation": -2.099904517645174,
+        "scale": [
+          30.320159892978584,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb6",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          195.0,
+          -0.84
+        ],
+        "rotation": -2.290610042638529,
+        "scale": [
+          30.32399040767233,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb7",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          225.0,
+          -1.44
+        ],
+        "rotation": 0.0,
+        "scale": [
+          30.3,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb8",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          255.0,
+          -1.1400000000000001
+        ],
+        "rotation": 1.145762838175103,
+        "scale": [
+          30.30599940011997,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb9",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          285.0,
+          -0.9400000000000001
+        ],
+        "rotation": -0.38196620472902537,
+        "scale": [
+          30.300666659259424,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb10",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          315.0,
+          -1.04
+        ],
+        "rotation": 0.0,
+        "scale": [
+          30.3,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb11",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          350.0,
+          -1.04
+        ],
+        "rotation": 0.0,
+        "scale": [
+          40.3,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Kerb12",
+      "SpriteRenderer": {
+        "color": [
+          0.85,
+          0.2,
+          0.2,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -10.0
+      },
+      "Transform": {
+        "position": [
+          382.5,
+          -1.04
+        ],
+        "rotation": 0.0,
+        "scale": [
+          25.3,
+          0.1
+        ]
+      }
+    },
+    {
+      "Name": "Road0",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          -15.0,
+          -1.62
+        ],
+        "rotation": 0.0,
+        "scale": [
+          30.5,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road1",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          25.0,
+          -1.62
+        ],
+        "rotation": 0.0,
+        "scale": [
+          50.5,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road2",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          70.0,
+          -1.3199999999999998
+        ],
+        "rotation": 0.8593722436446808,
+        "scale": [
+          40.50449974690347,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road3",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          105.0,
+          -0.42
+        ],
+        "rotation": 2.29061004263853,
+        "scale": [
+          30.52399040767233,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road4",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          135.0,
+          0.2300000000000001
+        ],
+        "rotation": 0.1909852243596874,
+        "scale": [
+          30.500166666203707,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road5",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          165.0,
+          -0.27
+        ],
+        "rotation": -2.099904517645174,
+        "scale": [
+          30.520159892978583,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road6",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          195.0,
+          -1.42
+        ],
+        "rotation": -2.290610042638529,
+        "scale": [
+          30.52399040767233,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road7",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          225.0,
+          -2.02
+        ],
+        "rotation": 0.0,
+        "scale": [
+          30.5,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road8",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          255.0,
+          -1.7200000000000002
+        ],
+        "rotation": 1.145762838175103,
+        "scale": [
+          30.50599940011997,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road9",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          285.0,
+          -1.52
+        ],
+        "rotation": -0.38196620472902537,
+        "scale": [
+          30.500666659259423,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road10",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          315.0,
+          -1.62
+        ],
+        "rotation": 0.0,
+        "scale": [
+          30.5,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road11",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          350.0,
+          -1.62
+        ],
+        "rotation": 0.0,
+        "scale": [
+          40.5,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Road12",
+      "SpriteRenderer": {
+        "color": [
+          0.16,
+          0.16,
+          0.18,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -20.0
+      },
+      "Transform": {
+        "position": [
+          382.5,
+          -1.62
+        ],
+        "rotation": 0.0,
+        "scale": [
+          25.5,
+          1.15
+        ]
+      }
+    },
+    {
+      "Name": "Sky",
+      "SpriteRenderer": {
+        "color": [
+          0.45,
+          0.65,
+          0.85,
+          1.0
+        ],
+        "texturePath": "",
+        "tilingFactor": 1.0,
+        "uvMax": [
+          1,
+          1
+        ],
+        "uvMin": [
+          0,
+          0
+        ],
+        "zIndex": -30.0
+      },
+      "Transform": {
+        "position": [
+          180,
+          1.5
+        ],
+        "rotation": 0.0,
+        "scale": [
+          480,
+          14
+        ]
+      }
+    }
+  ],
+  "name": "Track"
+}

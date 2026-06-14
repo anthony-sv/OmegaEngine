@@ -43,13 +43,23 @@ namespace
         }
     }
 
-    // Which project to open: an explicit argv[1] (the launcher will pass one,
-    // later), else the bundled sample found by walking up from the exe, else
-    // a last-ditch cwd-relative guess.
+    // Which project to open. argv[1] accepts a BARE NAME ("Moto"), a relative
+    // path ("projects/Moto") or an absolute one -- tried as a literal first,
+    // then as projects/<name> walking up from the exe (so it works no matter
+    // the working directory). No argument = the bundled sample.
     std::filesystem::path resolveProjectDir(int argc, char* argv[])
     {
         if (argc > 1)
-            return argv[1];
+        {
+            std::filesystem::path const arg { argv[1] };
+            if (std::filesystem::exists(arg / "project.json"))
+                return arg;
+            if (auto const found = findUpwards(executableDir(), std::filesystem::path { "projects" } / arg))
+                return *found;
+            if (auto const found = findUpwards(executableDir(), arg))
+                return *found;
+            return arg;   // let Project::load report the failure
+        }
 
         if (auto const found = findUpwards(executableDir(), "projects/Sandbox"))
             return *found;

@@ -74,6 +74,23 @@ internal unsafe struct NativeApi
 
     // particles (appended -- keep the ABI order)
     public delegate* unmanaged[Cdecl]<Vector2*, int, Vector4*, float, float, float, nint, void> ParticlesBurst;
+
+    // angular body control + HUD text (appended -- keep the ABI order)
+    public delegate* unmanaged[Cdecl]<uint, float>          GetAngularVelocity;
+    public delegate* unmanaged[Cdecl]<uint, float, void>    SetAngularVelocity;
+    public delegate* unmanaged[Cdecl]<uint, float, void>    ApplyTorque;
+    public delegate* unmanaged[Cdecl]<uint, nint, void>     SetText;
+
+    // music pitch (appended -- keep the ABI order)
+    public delegate* unmanaged[Cdecl]<float, void>          AudioSetMusicPitch;
+
+    // joint motors (appended -- keep the ABI order)
+    public delegate* unmanaged[Cdecl]<uint, float, void>    SetMotorSpeed;
+    public delegate* unmanaged[Cdecl]<uint, float, void>    SetMotorTorque;
+    public delegate* unmanaged[Cdecl]<uint, int, void>      EnableMotor;
+
+    // text colour (appended -- keep the ABI order)
+    public delegate* unmanaged[Cdecl]<uint, Vector4*, void> SetTextColor;
 }
 
 // Thin marshalling layer between the C# API surface and the native table.
@@ -189,6 +206,12 @@ internal static unsafe class Interop
     public static void AudioStopMusic()           => Api.AudioStopMusic();
     public static void AudioSetMasterVolume(float v) => Api.AudioSetMasterVolume(v);
     public static void AudioSetMusicVolume(float v)  => Api.AudioSetMusicVolume(v);
+    public static void AudioSetMusicPitch(float v)   => Api.AudioSetMusicPitch(v);
+
+    // -- joint motors --
+    public static void SetMotorSpeed(uint e, float v)  => Api.SetMotorSpeed(e, v);
+    public static void SetMotorTorque(uint e, float v) => Api.SetMotorTorque(e, v);
+    public static void EnableMotor(uint e, bool on)    => Api.EnableMotor(e, on ? 1 : 0);
 
     // -- particles --
     public static void ParticlesBurst(Vector2 position, int count, Vector4 color,
@@ -198,4 +221,18 @@ internal static unsafe class Interop
         try { Api.ParticlesBurst(&position, count, &color, speed, lifetime, size, utf8); }
         finally { if (utf8 != 0) Marshal.FreeCoTaskMem(utf8); }
     }
+
+    // -- angular body control + HUD text --
+    public static float GetAngularVelocity(uint e)          => Api.GetAngularVelocity(e);
+    public static void  SetAngularVelocity(uint e, float v) => Api.SetAngularVelocity(e, v);
+    public static void  ApplyTorque(uint e, float torque)   => Api.ApplyTorque(e, torque);
+
+    public static void SetText(uint e, string text)
+    {
+        nint utf8 = Marshal.StringToCoTaskMemUTF8(text);
+        try { Api.SetText(e, utf8); }
+        finally { Marshal.FreeCoTaskMem(utf8); }
+    }
+
+    public static void SetTextColor(uint e, Vector4 c) => Api.SetTextColor(e, &c);
 }

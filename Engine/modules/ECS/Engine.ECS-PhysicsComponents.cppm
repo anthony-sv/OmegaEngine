@@ -153,4 +153,53 @@ namespace Engine::ECS
         bool  isTrigger   { false };
 	}; // struct PolygonCollider2D
 
+
+    // -----------------------------------------------------------------
+    // ChainCollider2D -- a seam-free one-sided polyline surface (terrain
+    // with elevation: hills, dips, ramps that flow into each other).
+    // Lives on a STATIC body. Box2D requires at least 4 points; `loop`
+    // closes the ring. Points are local to the entity's Transform.
+    // -----------------------------------------------------------------
+
+    export struct ChainCollider2D
+    {
+        std::vector<glm::vec2> points;
+
+        float friction    { 0.6f };
+        float restitution { 0.0f };
+        bool  loop        { false };
+	}; // struct ChainCollider2D
+
+
+    // -----------------------------------------------------------------
+    // Joints -- THIS entity is the attached part (e.g. a wheel); it hangs
+    // off `connectedEntity` (looked up by NAME when both bodies exist).
+    // The hinge point is the part's position at creation time. Motor
+    // speed is authored in DEGREES/second (scripts steer it at runtime
+    // via Entity.SetMotorSpeed -- a powered wheel, a brake at speed 0).
+    // -----------------------------------------------------------------
+
+    export struct RevoluteJoint2D
+    {
+        std::string connectedEntity {};
+
+        bool  enableMotor    { false };
+        float motorSpeed     { 0.0f };     // degrees/second
+        float maxMotorTorque { 10.0f };
+	}; // struct RevoluteJoint2D
+
+    // Revolute + suspension: the part may also slide along `axis` (local
+    // to the connected body, usually straight up) on a spring.
+    export struct WheelJoint2D
+    {
+        std::string connectedEntity {};
+
+        glm::vec2 axis           { 0.0f, 1.0f };
+        float     hertz          { 4.0f };     // spring stiffness
+        float     dampingRatio   { 0.7f };
+        bool      enableMotor    { false };
+        float     motorSpeed     { 0.0f };     // degrees/second
+        float     maxMotorTorque { 10.0f };
+	}; // struct WheelJoint2D
+
 } // namespace ECS

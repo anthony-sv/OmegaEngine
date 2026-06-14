@@ -15,4 +15,7 @@ public static class Audio
     public static void StopMusic()                        => Interop.AudioStopMusic();
     public static void SetMasterVolume(float volume)      => Interop.AudioSetMasterVolume(volume);
     public static void SetMusicVolume(float volume)       => Interop.AudioSetMusicVolume(volume);
+
+    // Playback-rate multiplier for the music track (1 = as recorded).
+    public static void SetMusicPitch(float pitch)         => Interop.AudioSetMusicPitch(pitch);
 }

@@ -42,6 +42,9 @@ namespace Editor
             if (src.has<BoxCollider2D>())     dst.add<BoxCollider2D>(src.get<BoxCollider2D>());
             if (src.has<CircleCollider2D>())  dst.add<CircleCollider2D>(src.get<CircleCollider2D>());
             if (src.has<PolygonCollider2D>()) dst.add<PolygonCollider2D>(src.get<PolygonCollider2D>());
+            if (src.has<ChainCollider2D>())   dst.add<ChainCollider2D>(src.get<ChainCollider2D>());
+            if (src.has<RevoluteJoint2D>())   dst.add<RevoluteJoint2D>(src.get<RevoluteJoint2D>());
+            if (src.has<WheelJoint2D>())      dst.add<WheelJoint2D>(src.get<WheelJoint2D>());
             if (src.has<MarkerComponent>())   dst.add<MarkerComponent>(src.get<MarkerComponent>());
             if (src.has<ScriptComponent>())   dst.add<ScriptComponent>(src.get<ScriptComponent>());
             if (src.has<GraphComponent>())    dst.add<GraphComponent>(src.get<GraphComponent>());
@@ -135,6 +138,7 @@ namespace Editor
                 {
                     ImGui::ColorEdit4("Color",  &s.color.x);
                     ImGui::DragFloat ("Tiling", &s.tilingFactor, 0.1f, 0.0f, 100.0f);
+                    ImGui::DragFloat ("Z Index", &s.zIndex, 0.1f);   // lower = behind
                     ImGui::TextDisabled(s.texture ? "Texture: set" : "Texture: none");
                 }
             }
@@ -276,6 +280,70 @@ namespace Editor
                                                             : c.points.back());
 
                     material(c.density, c.friction, c.restitution, c.isTrigger);
+                }
+            }
+
+            if (entity.has<ChainCollider2D>())
+            {
+                auto& c = entity.get<ChainCollider2D>();
+                if (ImGui::CollapsingHeader("Chain Collider 2D", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    // A seam-free polyline surface (terrain). Box2D wants >= 4
+                    // points; rows edit/remove, Add Point appends.
+                    int removeAt = -1;
+                    for (std::size_t i = 0; i < c.points.size(); ++i)
+                    {
+                        ImGui::PushID(static_cast<int>(i));
+                        ImGui::DragFloat2("Point", &c.points[i].x, 0.05f);
+                        if (c.points.size() > 4)
+                        {
+                            ImGui::SameLine();
+                            if (ImGui::SmallButton("X")) removeAt = static_cast<int>(i);
+                        }
+                        ImGui::PopID();
+                    }
+                    if (removeAt >= 0)
+                        c.points.erase(c.points.begin() + removeAt);
+                    if (ImGui::SmallButton("+ Add Point"))
+                        c.points.push_back(c.points.empty() ? glm::vec2 { 0.0f, 0.0f }
+                                                            : c.points.back() + glm::vec2 { 1.0f, 0.0f });
+
+                    ImGui::DragFloat("Friction", &c.friction, 0.01f, 0.0f, 2.0f);
+                    ImGui::DragFloat("Restitution", &c.restitution, 0.01f, 0.0f, 1.0f);
+                    ImGui::Checkbox("Loop", &c.loop);
+                }
+            }
+
+            if (entity.has<RevoluteJoint2D>())
+            {
+                auto& jt = entity.get<RevoluteJoint2D>();
+                if (ImGui::CollapsingHeader("Revolute Joint 2D", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    char buf[128] = {};
+                    jt.connectedEntity.copy(buf, sizeof(buf) - 1);
+                    if (ImGui::InputText("Connected##rev", buf, sizeof(buf)))
+                        jt.connectedEntity = buf;
+                    ImGui::Checkbox("Motor##rev", &jt.enableMotor);
+                    ImGui::DragFloat("Speed (deg/s)##rev", &jt.motorSpeed, 1.0f);
+                    ImGui::DragFloat("Max torque##rev", &jt.maxMotorTorque, 0.1f, 0.0f, 1000.0f);
+                }
+            }
+
+            if (entity.has<WheelJoint2D>())
+            {
+                auto& jt = entity.get<WheelJoint2D>();
+                if (ImGui::CollapsingHeader("Wheel Joint 2D", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    char buf[128] = {};
+                    jt.connectedEntity.copy(buf, sizeof(buf) - 1);
+                    if (ImGui::InputText("Connected##whl", buf, sizeof(buf)))
+                        jt.connectedEntity = buf;
+                    ImGui::DragFloat2("Axis", &jt.axis.x, 0.05f);
+                    ImGui::DragFloat("Hertz", &jt.hertz, 0.1f, 0.1f, 60.0f);
+                    ImGui::DragFloat("Damping", &jt.dampingRatio, 0.01f, 0.0f, 2.0f);
+                    ImGui::Checkbox("Motor##whl", &jt.enableMotor);
+                    ImGui::DragFloat("Speed (deg/s)##whl", &jt.motorSpeed, 1.0f);
+                    ImGui::DragFloat("Max torque##whl", &jt.maxMotorTorque, 0.1f, 0.0f, 1000.0f);
                 }
             }
 
@@ -584,7 +652,8 @@ namespace Editor
                 // the entity has none yet.
                 bool const hasCollider = entity.has<BoxCollider2D>()
                                       || entity.has<CircleCollider2D>()
-                                      || entity.has<PolygonCollider2D>();
+                                      || entity.has<PolygonCollider2D>()
+                                      || entity.has<ChainCollider2D>();
                 if (!hasCollider && ImGui::MenuItem("Box Collider 2D"))     entity.add<BoxCollider2D>();
                 if (!hasCollider && ImGui::MenuItem("Circle Collider 2D"))  entity.add<CircleCollider2D>();
                 if (!hasCollider && ImGui::MenuItem("Polygon Collider 2D"))
@@ -594,6 +663,15 @@ namespace Editor
                     auto& poly = entity.add<PolygonCollider2D>();
                     poly.points = { { 0.0f, 0.5f }, { -0.5f, -0.5f }, { 0.5f, -0.5f } };
                 }
+                if (!hasCollider && ImGui::MenuItem("Chain Collider 2D"))
+                {
+                    auto& chain = entity.add<ChainCollider2D>();
+                    chain.points = { { 0.0f, 0.0f }, { 2.0f, 0.0f }, { 4.0f, 0.0f }, { 6.0f, 0.0f } };
+                }
+                if (!entity.has<RevoluteJoint2D>() && !entity.has<WheelJoint2D>()
+                    && ImGui::MenuItem("Revolute Joint 2D")) entity.add<RevoluteJoint2D>();
+                if (!entity.has<WheelJoint2D>() && !entity.has<RevoluteJoint2D>()
+                    && ImGui::MenuItem("Wheel Joint 2D"))    entity.add<WheelJoint2D>();
                 ImGui::EndPopup();
             }
         }
@@ -793,7 +871,7 @@ namespace Editor
             Engine::Systems::ParticleSystem::render(world->registry(), *m_camera);
 
             // Text (HUD / menus) -- foreground, on top of sprites.
-            Engine::Systems::RenderSystem::renderText(world->registry(), *m_camera);
+            Engine::Systems::RenderSystem::renderText(world->registry(), *m_camera, alpha);
 
             // Collider wireframe overlay (authoring aid). Drawn after the
             // sprites, into the same FBO, so it sits on top.

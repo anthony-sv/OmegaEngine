@@ -12,6 +12,11 @@ public abstract class Script
     public virtual void OnCreate() { }
     public virtual void OnUpdate(float dt) { }
 
+    // Called when the instance is torn down for good: a scene switch, or the
+    // editor's Stop. NOT called on hot reload (the instance is swapped, not
+    // destroyed). Stop sounds / release anything global here.
+    public virtual void OnDestroy() { }
+
     // Physics callbacks. Collisions fire for solid contacts (with the contact
     // normal); triggers fire for sensor overlaps (just the other entity). Both
     // sides of a contact are notified.
